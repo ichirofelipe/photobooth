@@ -1,0 +1,120 @@
+{
+    "frameData1": {
+        "frameData": {
+            "width": 270,
+            "height": 600,
+            "strokeSize": 0.5,
+            "imageCount": 2
+        },
+        "imagesData": [
+            {
+                "x": 9,
+                "y": 140,
+                "width": 250,
+                "height": 150
+            },
+            {
+                "x": 9,
+                "y": 300,
+                "width": 250,
+                "height": 150
+            }
+        ]
+    },
+    "frameData2": {
+        "frameData": {
+            "width": 270,
+            "height": 600,
+            "strokeSize": 0.5,
+            "imageCount": 3
+        },
+        "imagesData": [
+            {
+                "x": 9,
+                "y": 90,
+                "width": 250,
+                "height": 150
+            },
+            {
+                "x": 9,
+                "y": 250,
+                "width": 250,
+                "height": 150
+            },
+            {
+                "x": 9,
+                "y": 410,
+                "width": 250,
+                "height": 150
+            }
+        ]
+    },
+    "frameData3": {
+        "frameData": {
+            "width": 550,
+            "height": 380,
+            "strokeSize": 0.5,
+            "imageCount": 4
+        },
+        "imagesData": [
+            {
+                "x": 20,
+                "y": 15,
+                "width": 250,
+                "height": 150
+            },
+            {
+                "x": 280,
+                "y": 15,
+                "width": 250,
+                "height": 150
+            },
+            {
+                "x": 20,
+                "y": 175,
+                "width": 250,
+                "height": 150
+            },
+            {
+                "x": 280,
+                "y": 175,
+                "width": 250,
+                "height": 150
+            }
+        ]
+    },
+    "frameData4": {
+        "frameData": {
+            "width": 550,
+            "height": 380,
+            "strokeSize": 0.5,
+            "imageCount": 4
+        },
+        "imagesData": [
+            {
+                "x": 10,
+                "y": 15,
+                "width": 320,
+                "height": 220
+            },
+            {
+                "x": 10,
+                "y": 245,
+                "width": 170,
+                "height": 125
+            },
+            {
+                "x": 190,
+                "y": 245,
+                "width": 170,
+                "height": 125
+            },
+            {
+                "x": 370,
+                "y": 245,
+                "width": 170,
+                "height": 125
+            }
+        ]
+    }
+}

@@ -1,0 +1,25 @@
+{
+    "frameDesigns": [
+        {
+            "src": "/images/designs/design1.jpg"
+        },
+        {
+            "src": "/images/designs/design2.jpg"
+        },
+        {
+            "src": "/images/designs/design3.jpg"
+        },
+        {
+            "src": "/images/designs/design4.jpg"
+        },
+        {
+            "src": "/images/designs/design5.jpg"
+        },
+        {
+            "src": "/images/designs/changli.jpg"
+        },
+        {
+            "src": "/images/designs/changli1.jpg"
+        }
+    ]
+}
