@@ -1,6 +1,6 @@
 import { ref, onMounted } from 'vue';
-import {frameData1,frameData2,frameData3,frameData4} from '../data/frameData.json';
-import {frameDesigns} from '../data/frameDesigns.json';
+import {frameData1,frameData2,frameData3,frameData4} from '../../data/frameData.json';
+import { frameDesigns } from '../../data/frameDesigns.json';
 import { usePhotoboothStore } from './data';
 
 // Get configuration for the base

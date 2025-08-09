@@ -1,14 +1,16 @@
-import { ref, onBeforeUnmount } from 'vue';
-import { useRouter } from 'vue-router'
+import { ref, onBeforeUnmount, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router'
 import { usePhotoboothStore } from './data';
 
 export default function useCamera() {
     const router = useRouter()
+    const route = useRoute()
     const booth = usePhotoboothStore();
     const videoRef = ref(null);
     const canvasRef = ref(null);
     const duration = 1; // countdown in seconds
     const timeLeft = ref(duration);
+    const stopCameraPage = ['Home', "Template"];
     let timer = ref(null);
     let stream = null;
     let imageCount = 0;
@@ -93,7 +95,17 @@ export default function useCamera() {
     // Clean up when the component is unmounted
     onBeforeUnmount(() => {
         stopCamera();
+        resetCountdown();
     });
+    
+    watch(
+        () => route.fullPath,
+        (newPath, oldPath) => {
+            if(stopCameraPage.includes(route.name)) {
+                stopCamera();
+            }
+        }
+    )
 
     startCamera()
 
