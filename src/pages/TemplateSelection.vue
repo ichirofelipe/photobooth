@@ -27,12 +27,6 @@ const booth = usePhotoboothStore();
 </script>
 
 <style scoped>
-#parent {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: calc(100vh - 4rem);
-}
 #template-selection {
   column-gap: 3rem;
 }

@@ -5,6 +5,17 @@ import { usePhotoboothStore } from './data';
 
 // Get configuration for the base
 export default function useDesign() {
+    const baseWidth = 550;
+    const baseHeight = 600;
+    const responsiveWidth = ref(baseWidth);
+    const responsiveHeight = ref(baseHeight);
+    const diff = ref(0);
+
+    onMounted(() => {
+        updateSizing();
+        window.addEventListener("resize", updateSizing);
+    })
+
     const booth = usePhotoboothStore();
     const getSelectedFrame = (id) => {
         switch(id)
@@ -27,27 +38,26 @@ export default function useDesign() {
     const selectedFrameId = booth.selectedFrame?.id ?? 1;
     const {frameData, imagesData} = getSelectedFrame(selectedFrameId);
 
-    const getStageConfig = () => {
-        return {
-            width: 550,
-            height: 600,
-        };
-    }
-    const getBaseConfig = () => {
-        return {
-            width: 550,
-            height: 600,
-            fill: 'white',
-        };
+    const updateSizing = () => {
+        const minHeight = 900;
+        const tmpDiff = (minHeight-window.innerHeight)/minHeight;
+        diff.value = tmpDiff >= 0 ? tmpDiff : 0;
+        responsiveWidth.value = baseWidth-(baseWidth*diff.value);
+        responsiveHeight.value = baseHeight-(baseHeight*diff.value);
+
+        console.log(diff.value,window.innerHeight,baseWidth-(baseWidth*diff.value))
     }
 
     // Get configuration for the frame
     const getFrameConfig = () => {
+        const resWidth = frameData.width-(frameData.width*diff.value);
+        const resHeight = frameData.height-(frameData.height*diff.value);
+
         const frameStrokeWidth = frameData.strokeSize;
-        const x = ((getBaseConfig().width - frameData.width) / 2) + (frameStrokeWidth / 2);
-        const y = ((getBaseConfig().height - frameData.height) / 2) + (frameStrokeWidth / 2);
-        const width = frameData.width - frameStrokeWidth;
-        const height = frameData.height - frameStrokeWidth;
+        const x = ((responsiveWidth.value - (resWidth)) / 2) + (frameStrokeWidth / 2);
+        const y = ((responsiveHeight.value - resHeight) / 2) + (frameStrokeWidth / 2);
+        const width = resWidth - frameStrokeWidth;
+        const height = resHeight - frameStrokeWidth;
         return {
             x: x,
             y: y,
@@ -97,11 +107,16 @@ export default function useDesign() {
     // Get configuration for each image
     const getImageConfig = (img, index) => {
         if(!imagesData[index]) return;
-        const scaleFactorWidth = imagesData[index].width / img.width;
+        const resWidth = imagesData[index].width-(imagesData[index].width*diff.value);
+        const resHeight = imagesData[index].height-(imagesData[index].height*diff.value);
+        const resX = imagesData[index].x-(imagesData[index].x*diff.value);
+        const resY = imagesData[index].y-(imagesData[index].y*diff.value);
+
+        const scaleFactorWidth = resWidth / img.width;
         const scaledImageHeight =  (scaleFactorWidth * img.height) ;
-        const verticalOffset = (scaledImageHeight - imagesData[index].height) / 2;
-        const imageOffsetX = getFrameConfig().x + imagesData[index].x;
-        const imageOffsetY = getFrameConfig().y + imagesData[index].y;
+        const verticalOffset = (scaledImageHeight - resHeight) / 2;
+        const imageOffsetX = getFrameConfig().x + resX;
+        const imageOffsetY = getFrameConfig().y + resY;
         
         const finalOffset = (verticalOffset/scaledImageHeight * img.height);
         return {
@@ -110,8 +125,8 @@ export default function useDesign() {
             fillPatternOffset: { x: 0, y: finalOffset},
             x: imageOffsetX,
             y: imageOffsetY,
-            width: imagesData[index].width,
-            height: imagesData[index].height,
+            width: resWidth,
+            height: resHeight,
             stroke: 'black',
             strokeWidth: 1.25,
             strokeEnabled: true,
@@ -149,8 +164,8 @@ export default function useDesign() {
     };
 
     return {
-        getStageConfig,
-        getBaseConfig,
+        responsiveWidth,
+        responsiveHeight,
         getFrameConfig,
         frameData,
         images,

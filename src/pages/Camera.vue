@@ -19,6 +19,9 @@ const {
 </script>
 
 <style scoped>
+video {
+  transform: scaleX(-1);
+}
 video.shutter {
   animation: shutter 0.75s ease;
 }

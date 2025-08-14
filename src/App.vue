@@ -1,10 +1,12 @@
 <script setup>
 import { ArrowUturnLeftIcon } from '@heroicons/vue/24/solid';
 import usePhotoboothApp from './assets/js/global';
-const { goBack } = usePhotoboothApp()
+import RotatePopup from './components/RotatePopup.vue';
+const { goBack, isPortrait  } = usePhotoboothApp()
 </script>
 
 <template>
+  <RotatePopup v-if="isPortrait"/>
   <ArrowUturnLeftIcon v-if="isHomePage" @click="goBack" class="w-15 h-15 absolute cursor-pointer top-0 left-0 p-3"/>
   <transition name="slide" mode="out-in">
       <router-view />

@@ -83,7 +83,9 @@ export default function useCamera() {
         canvas.height = video.videoHeight;
 
         const context = canvas.getContext('2d');
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        context.scale(-1, 1);
+        context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+        context.restore();
 
         // Save as data URL
         const imageData = canvas.toDataURL('image/png');

@@ -3,12 +3,12 @@
     <h1 class="text-4xl uppercase whitespace-nowrap tracking-wider">
       Make it a masterpiece
     </h1>
-    <div id="frame-editor" class="grid xl:grid-cols-2">
-      <div id="frame-viewer" class="col-span-1">
-        <v-stage ref="stageRef" :config="getStageConfig()">
+    <div id="frame-editor" class="flex gap-x-5">
+      <div id="frame-viewer" class="">
+        <v-stage ref="stageRef" :config="{width: responsiveWidth, height: responsiveHeight}">
           <v-layer>
             <!-- BASE -->
-            <v-rect :config="getBaseConfig()" />
+            <v-rect :config="{width: responsiveWidth, height: responsiveHeight, fill: 'white'}" />
           </v-layer>
           <v-layer ref="layerRef" :config="frameData">
             <!-- FRAME -->
@@ -24,7 +24,7 @@
         </v-stage>
       </div>
 
-      <div id="frame-designs" class="col-span-1">
+      <div id="frame-designs" class="">
         <ul id="design-list" class="grid grid grid-cols-2 gap-x-3 gap-y-3">
           <li v-for="(design, index) in frameDesigns" :class="{selected: booth.selectedDesign === index}" class="option col-span-1" @click="selectDesign(index)">
             <img :src="design.src"/>
@@ -41,8 +41,8 @@ import useDesign from "../assets/js/design";
 import { usePhotoboothStore } from '../assets/js/data';
 const booth = usePhotoboothStore();
 const {
-  getStageConfig,
-  getBaseConfig,
+  responsiveWidth,
+  responsiveHeight,
   getFrameConfig,
   handlePrint,
   getImageConfig,
@@ -60,6 +60,10 @@ const {
 }
 .konvajs-content canvas{
   box-shadow: inset 0 0px 8px rgba(0, 0, 0, 0.3);
+}
+
+#frame-designs {
+  width: 100%;
 }
 
 .option {
