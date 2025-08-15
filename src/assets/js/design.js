@@ -35,8 +35,8 @@ export default function useDesign() {
         booth.setDesign(designId);
     }
 
-    const selectedFrameId = booth.selectedFrame?.id ?? 1;
-    const {frameData, imagesData} = getSelectedFrame(selectedFrameId);
+    const selectedFrameId = booth.selectedFrame?.id ?? 4;
+    const {frameData, imagesData, logoData} = getSelectedFrame(selectedFrameId);
 
     const updateSizing = () => {
         const minHeight = 900;
@@ -53,6 +53,7 @@ export default function useDesign() {
         const resWidth = frameData.width-(frameData.width*diff.value);
         const resHeight = frameData.height-(frameData.height*diff.value);
 
+        const scaleFactorWidth = resWidth / frameData.width;
         const frameStrokeWidth = frameData.strokeSize;
         const x = ((responsiveWidth.value - (resWidth)) / 2) + (frameStrokeWidth / 2);
         const y = ((responsiveHeight.value - resHeight) / 2) + (frameStrokeWidth / 2);
@@ -64,6 +65,7 @@ export default function useDesign() {
             width: width,
             height: height,
             fillPatternImage: booth.designs[booth.selectedDesign],
+            fillPatternScale: {x: scaleFactorWidth, y: scaleFactorWidth},
             stroke: 'black',
             strokeWidth: frameStrokeWidth,
             cornerRadius: 3
@@ -85,54 +87,90 @@ export default function useDesign() {
             width: 1200,
             height: 1197,
         },
+        {
+            src: '/images/captures/cat_image.avif',
+            width: 1200,
+            height: 1197,
+        },
+        {
+            src: '/images/captures/cat_image.avif',
+            width: 1200,
+            height: 1197,
+        },
     ])
 
     // Define image data
     const images = ref(booth.uploadedImages.length > 0 ? booth.uploadedImages : testImages );
+    const logo = ref(null);
 
     // Load images
     onMounted(() => {
         images.value.forEach((img, index) => {
-            const imageObj = new Image();
-            imageObj.onload = () => {
-            loadedImages.value = {
-                ...loadedImages.value,
-                [index]: imageObj
-            };
-            };
-            imageObj.src = img.src;
+            booth.loadImgData(img.src).then((imgData) => {
+                loadedImages.value = {
+                    ...loadedImages.value,
+                    [index]: imgData
+                };
+            });
+        });
+        booth.loadImgData('/images/logo-white.png').then((img) => {
+            logo.value = img;
         });
     });
+
+    const getLogoConfig = () => {
+        if(!logo.value) return;
+        // return {
+        //     ...getImageRectConfig(logoData, diff.value, logo.value),
+        //     stroke: 'black',
+        //     strokeWidth: 1.25,
+        //     strokeEnabled: true,
+        //     cornerRadius: 3,
+        // };
+        return getImageRectConfig(logoData, diff.value, logo.value)
+    };
 
     // Get configuration for each image
     const getImageConfig = (img, index) => {
         if(!imagesData[index]) return;
-        const resWidth = imagesData[index].width-(imagesData[index].width*diff.value);
-        const resHeight = imagesData[index].height-(imagesData[index].height*diff.value);
-        const resX = imagesData[index].x-(imagesData[index].x*diff.value);
-        const resY = imagesData[index].y-(imagesData[index].y*diff.value);
+        const imgRectData = getImageRectConfig(imagesData[index], diff.value, img)
 
-        const scaleFactorWidth = resWidth / img.width;
-        const scaledImageHeight =  (scaleFactorWidth * img.height) ;
-        const verticalOffset = (scaledImageHeight - resHeight) / 2;
-        const imageOffsetX = getFrameConfig().x + resX;
-        const imageOffsetY = getFrameConfig().y + resY;
-        
-        const finalOffset = (verticalOffset/scaledImageHeight * img.height);
         return {
-            fillPatternImage: loadedImages.value[index],
-            fillPatternScale: { x: scaleFactorWidth, y: scaleFactorWidth},
-            fillPatternOffset: { x: 0, y: finalOffset},
-            x: imageOffsetX,
-            y: imageOffsetY,
-            width: resWidth,
-            height: resHeight,
+            ...imgRectData,
             stroke: 'black',
             strokeWidth: 1.25,
             strokeEnabled: true,
             cornerRadius: 3
         };
     };
+
+    const getImageRectConfig = (imgFrameData, scale, imgData) => {
+        const resWidth = imgFrameData.width-(imgFrameData.width*scale);
+        const resHeight = imgFrameData.height-(imgFrameData.height*scale);
+        const resX = imgFrameData.x-(imgFrameData.x*scale);
+        const resY = imgFrameData.y-(imgFrameData.y*scale);
+
+        const scaleFactorWidth = resWidth / imgData.width;
+        const scaledImageHeight =  (scaleFactorWidth * imgData.height) ;
+        const scaledImageWidth =  (scaleFactorWidth * imgData.width) ;
+        const verticalOffset = (scaledImageHeight - resHeight) / 2;
+        const horizontalOffset = (scaledImageWidth - resWidth) / 2;
+        const imageOffsetX = getFrameConfig().x + resX;
+        const imageOffsetY = getFrameConfig().y + resY;
+        const finalOffsetY = (verticalOffset/scaledImageHeight * imgData.height);
+        const finalOffsetX = (horizontalOffset/scaledImageWidth * imgData.width);
+
+        return {
+            fillPatternImage: imgData,
+            fillPatternScale: { x: scaleFactorWidth, y: scaleFactorWidth},
+            fillPatternOffset: { x: finalOffsetX, y: finalOffsetY},
+            fillPatternRepeat: 'no-repeat',
+            x: imageOffsetX,
+            y: imageOffsetY,
+            width: resWidth,
+            height: resHeight,
+        };
+    }
 
     const handlePrint = () => {
         const dataURL = layerRef.value.getNode().toDataURL({ pixelRatio: 2 });
@@ -168,11 +206,13 @@ export default function useDesign() {
         responsiveHeight,
         getFrameConfig,
         frameData,
-        images,
+        logo,
+        loadedImages,
         getImageConfig,
         handlePrint,
         layerRef,
         frameDesigns,
-        selectDesign
+        selectDesign,
+        getLogoConfig
     }
 }

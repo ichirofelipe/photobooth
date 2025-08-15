@@ -6,6 +6,12 @@
             "strokeSize": 0.5,
             "imageCount": 2
         },
+        "logoData": {
+            "x": 75,
+            "y": 20,
+            "width": 120,
+            "height": 100
+        },
         "imagesData": [
             {
                 "x": 9,
@@ -27,6 +33,12 @@
             "height": 600,
             "strokeSize": 0.5,
             "imageCount": 3
+        },
+        "logoData": {
+            "x": 85,
+            "y": 8,
+            "width": 100,
+            "height": 75
         },
         "imagesData": [
             {
@@ -89,6 +101,12 @@
             "height": 380,
             "strokeSize": 0.5,
             "imageCount": 4
+        },
+        "logoData": {
+            "x": 355,
+            "y": 60,
+            "width": 170,
+            "height": 125
         },
         "imagesData": [
             {

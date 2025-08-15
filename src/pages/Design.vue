@@ -3,7 +3,7 @@
     <h1 class="text-4xl uppercase whitespace-nowrap tracking-wider">
       Make it a masterpiece
     </h1>
-    <div id="frame-editor" class="flex gap-x-5">
+    <div id="frame-editor" class="flex gap-x-5 mx-auto">
       <div id="frame-viewer" class="">
         <v-stage ref="stageRef" :config="{width: responsiveWidth, height: responsiveHeight}">
           <v-layer>
@@ -14,9 +14,11 @@
             <!-- FRAME -->
             <v-rect :config="getFrameConfig()" />
 
+            <v-rect v-if="logo" :config="getLogoConfig()"/>
+
             <!-- User Images -->
             <v-rect
-              v-for="(img, index) in images"
+              v-for="(img, index) in loadedImages"
               :key="index"
               :config="getImageConfig(img, index)"
             />
@@ -47,10 +49,12 @@ const {
   handlePrint,
   getImageConfig,
   frameData,
-  images,
+  loadedImages,
   layerRef,
   frameDesigns,
-  selectDesign
+  selectDesign,
+  getLogoConfig,
+  logo
 } = useDesign();
 </script>
 
@@ -63,6 +67,7 @@ const {
 }
 
 #frame-designs {
+  max-width: 50em;
   width: 100%;
 }
 
@@ -87,8 +92,10 @@ const {
 
 .option img {
   height: 100%;
-  width: 100%;
+  max-width: 100%;
   object-fit: cover;
   border-radius: 5px;
+  width: 12em;
+  
 }
 </style>

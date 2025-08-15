@@ -5,7 +5,7 @@ export const usePhotoboothStore = defineStore('photobooth', {
     selectedFrame: null,
     uploadedImages: [],
     designs: {},
-    selectedDesign: 0
+    selectedDesign: 0,
   }),
 
   actions: {
@@ -17,13 +17,12 @@ export const usePhotoboothStore = defineStore('photobooth', {
       };
     },
     setImage(imageData) {
-      getImageDimensions(imageData).then(({width, height}) => {
-        console.log(width, height)
+      loadImgFunc(imageData).then(img => {
         this.uploadedImages.push(
           {
             src: imageData,
-            width: width,
-            height: height
+            width: img.width,
+            height: img.height
           }
         );
       })
@@ -36,30 +35,27 @@ export const usePhotoboothStore = defineStore('photobooth', {
       this.uploadedImages = [];
       this.selectedDesign = 0;
     },
+    loadImgData (url) {
+      return loadImgFunc(url);
+    },
     async loadDesigns(imageUrls = []) {
       const loadPromises = imageUrls.map((src, index) => {
-        return new Promise((resolve) => {
-          const img = new Image();
-          img.onload = () => {
-            this.designs[index] = img;
-            resolve();
-          };
-          img.src = src;
+        return loadImgFunc(src).then(img => {
+          this.designs[index] = img;
         });
       });
-
       await Promise.all(loadPromises);
     }
   },
 });
 
-const getImageDimensions = (dataUrl) => {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-            resolve({ width: img.width, height: img.height });
-        };
-        img.onerror = reject;
-        img.src = dataUrl;
-    });
-};
+const loadImgFunc = (url) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      resolve(img);
+    }
+    img.onerror = reject;
+    img.src = url;
+  })
+}
