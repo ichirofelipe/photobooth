@@ -1,6 +1,6 @@
 <template>
   <div id="parent" class="p-8 flex flex-col h-full justify-between">
-    <h1 class="text-4xl uppercase whitespace-nowrap tracking-wider">
+    <h1 class="text-3xl lg:text-4xl uppercase whitespace-nowrap tracking-wider">
       Make it a masterpiece
     </h1>
     <div id="frame-editor" class="flex gap-x-5 mx-auto">
@@ -27,7 +27,8 @@
       </div>
 
       <div id="frame-designs" class="">
-        <ul id="design-list" class="grid grid grid-cols-2 gap-x-3 gap-y-3">
+        <h3 class="font-medium text-lg">FRAMES</h3>
+        <ul id="design-list" class="grid grid grid-cols-2 gap-x-3 gap-y-3 scrollbar">
           <li v-for="(design, index) in frameDesigns" :class="{selected: booth.selectedDesign === index}" class="option col-span-1" @click="selectDesign(index)">
             <img :src="design.src"/>
           </li>
@@ -71,23 +72,51 @@ const {
   width: 100%;
 }
 
+#design-list {
+    max-height: 15em;
+    overflow-y: auto;
+    /* box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.5); */
+    box-shadow: inset 0 0px 8px rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    background-color: #ffffff;
+    border-radius: 5px;
+}
+
+#design-list::-webkit-scrollbar {
+    width: 12px;
+}
+        
+#design-list::-webkit-scrollbar-track {
+    background-color: transparent;
+    border: 1.5px solid #7e7e7e;
+    border-radius: 8px;
+}
+        
+#design-list::-webkit-scrollbar-thumb {
+    background-color: #f1f1f1;
+    border: 2px solid #616161;
+    border-radius: 8px;
+}
+
 .option {
   height: 6em;
   background: #ffffff;
-  padding: 10px;
-  border: 1px solid #ccc;
+  /* border: 1px solid #ccc; */
   cursor: pointer;
   border-radius: 5px;
-  filter: brightness(0.9);
+  filter: brightness(0.7);
 }
 
 .option:hover {
-  filter: brightness(1);
+  filter: brightness(1.2);
 }
 
 .option.selected {
-  filter: brightness(1);
-  border-color: rgb(77, 177, 220);
+  filter: brightness(1.2);
+}
+.option.selected img {
+  padding: 3px;
+  background-color: #000;
 }
 
 .option img {
@@ -96,6 +125,5 @@ const {
   object-fit: cover;
   border-radius: 5px;
   width: 12em;
-  
 }
 </style>
