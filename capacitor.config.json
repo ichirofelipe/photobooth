@@ -1,5 +1,9 @@
 {
   "appId": "com.photobooth.app",
   "appName": "photobooth",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "url": "http://192.168.254.174:5173",
+    "cleartext": true
+  }
 }

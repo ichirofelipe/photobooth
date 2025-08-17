@@ -2,27 +2,20 @@
   <div id="parent" class="p-8">
     <h1 class="text-4xl uppercase whitespace-nowrap tracking-wider">Choose your template</h1>
     <div id="template-selection" class="grid grid-cols-4">
-      <a class="self-center box" :class="{active: booth.selectedFrame?.id === 1}" @click=booth.setFrame(1,2)>
-        <img src="/images/pose1_2.png" class="pb-template box__image"/>
-      </a>
-      <a class="self-center box" :class="{active: booth.selectedFrame?.id === 2}" @click=booth.setFrame(2,3)>
-        <img src="/images/pose1_3.png" class="pb-template box__image"/>
-      </a>
-      <a class="self-center box" :class="{active: booth.selectedFrame?.id === 3}" @click=booth.setFrame(3,4)>
-        <img src="/images/pose2_4.png" class="pb-template box__image"/>
-      </a>
-      <a class="self-center box" :class="{active: booth.selectedFrame?.id === 4}" @click=booth.setFrame(4,4)>
-        <img src="/images/pose2_4v2.png" class="pb-template box__image"/>
+    
+      <a v-for="(frame, index) in frames" class="self-center box" :class="{active: booth.selectedTemplate?.id === index}" @click=booth.setTemplate(index,frame.frameData.imageCount)>
+        <img :src="frame.imgSrc" class="pb-template box__image"/>
       </a>
       
     </div>
-    <router-link v-if="booth.selectedFrame" to="/camera" class="pb-button p-5">CLICK HERE TO PROCEED</router-link>
-    <button v-if="!booth.selectedFrame" class="pb-button p-5 disabled">CLICK HERE TO PROCEED</button>
+    <router-link v-if="booth.selectedTemplate" to="/camera" class="pb-button p-5">CLICK HERE TO PROCEED</router-link>
+    <button v-if="!booth.selectedTemplate" class="pb-button p-5 disabled">CLICK HERE TO PROCEED</button>
   </div>
 </template>
 
 <script setup>
 import { usePhotoboothStore } from '../assets/js/data';
+import { frames } from '../data/frameData';
 const booth = usePhotoboothStore();
 </script>
 

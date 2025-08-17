@@ -27,60 +27,11 @@ watch(() => props.timeLeft, () => {
 </script>
 
 <style scoped>
-/* 
-.cont {
-  width: 250px;
-  height: 250px;
-  position: fixed;
-  text-align: center;
-  font-weight: bold;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  border: 2px solid #aaa;
-  border-radius: 50%;
-  overflow: hidden;
-  opacity: 0.6;
-}
-.cont::after {
-  content: "";
-  width: 200px;
-  height: 200px;
-  position: absolute;
-  top: 23px;
-  left: 23px;
-  border: 1px solid #aaa;
-  border-radius: 50%;
-  background: #777;
-  opacity: 0.5;
-  background-image: linear-gradient(transparent calc(50% - 1px), #aaa calc(50% - 1px), #aaa calc(50% + 1px), transparent calc(50% + 1px)), linear-gradient(90deg, transparent calc(50% - 1px), #aaa calc(50% - 1px), #aaa calc(50% + 1px), transparent calc(50% + 1px));
-}
-
-.spinner {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 125px;
-  height: 100px;
-  transform-origin: 0 0;
-  background-image: linear-gradient(black, transparent);
-  opacity: 0.5;
-  animation: spin 1s infinite linear;
-}
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(-360deg);
-  }
-} */
-
 .number {
   position: absolute;
   top: 50%;
   left: 50%;
-  z-index: 2;
+  z-index: 1000;
   transform: translate(-50%, -50%);
   font-size: 150px;
   font-weight: bold;

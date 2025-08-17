@@ -3,7 +3,7 @@
     <h1 class="text-3xl lg:text-4xl uppercase whitespace-nowrap tracking-wider">
       Make it a masterpiece
     </h1>
-    <div id="frame-editor" class="flex gap-x-5 mx-auto">
+    <div id="frame-editor" class="flex gap-x-3 mx-auto">
       <div id="frame-viewer" class="">
         <v-stage ref="stageRef" :config="{width: responsiveWidth, height: responsiveHeight}">
           <v-layer>
@@ -26,13 +26,23 @@
         </v-stage>
       </div>
 
-      <div id="frame-designs" class="">
-        <h3 class="font-medium text-lg">FRAMES</h3>
-        <ul id="design-list" class="grid grid grid-cols-2 gap-x-3 gap-y-3 scrollbar">
-          <li v-for="(design, index) in frameDesigns" :class="{selected: booth.selectedDesign === index}" class="option col-span-1" @click="selectDesign(index)">
-            <img :src="design.src"/>
-          </li>
-        </ul>
+      <div class="flex flex-col gap-3">
+        <div id="frames" class="frame-designs">
+          <h3 class="font-medium text-lg py-1">FRAMES</h3>
+          <ul id="design-list" class="frame-options grid grid grid-cols-2 gap-3 scrollbar">
+            <li v-for="(design, index) in frameDesigns" :class="{selected: booth.selectedDesign === index}" class="option col-span-1" @click="selectDesign(index)">
+              <img :src="design.src"/>
+            </li>
+          </ul>
+        </div>
+        <div v-if="variation.length > 1" id="variation" class="frame-designs">
+          <h3 class="font-medium text-lg py-1">VARIATION</h3>
+          <ul id="variation-list" class="frame-options grid grid grid-cols-5 gap-3 scrollbar">
+            <li v-for="(option, index) in variation" class="variation-option col-span-1" :class="{selected: booth.selectedVariation === index}" @click=selectVariation(index)>
+              <img :src="option.imgSrc"/>
+            </li>
+          </ul>
+        </div>
       </div>
     </div>
     <button @click="handlePrint" class="pb-button p-5">PROCEED TO PRINT</button>
@@ -54,8 +64,10 @@ const {
   layerRef,
   frameDesigns,
   selectDesign,
+  selectVariation,
   getLogoConfig,
-  logo
+  logo,
+  variation
 } = useDesign();
 </script>
 
@@ -67,23 +79,23 @@ const {
   box-shadow: inset 0 0px 8px rgba(0, 0, 0, 0.3);
 }
 
-#frame-designs {
+.frame-designs {
   max-width: 50em;
   width: 100%;
+  box-shadow: inset 0 0px 8px rgba(0, 0, 0, 0.3);
+  background-color: #ffffff;
+  border-radius: 5px;
+  height: fit-content;
 }
 
-#design-list {
-    max-height: 15em;
+.frame-options {
     overflow-y: auto;
-    /* box-shadow: 0px 0px 10px 1px rgba(0, 0, 0, 0.5); */
-    box-shadow: inset 0 0px 8px rgba(0, 0, 0, 0.3);
-    padding: 15px;
-    background-color: #ffffff;
-    border-radius: 5px;
+    max-height: 12em;
+    padding: 0 15px 15px 15px;
 }
 
 #design-list::-webkit-scrollbar {
-    width: 12px;
+    width: 10px;
 }
         
 #design-list::-webkit-scrollbar-track {
@@ -99,7 +111,7 @@ const {
 }
 
 .option {
-  height: 6em;
+  height: 5em;
   background: #ffffff;
   /* border: 1px solid #ccc; */
   cursor: pointer;
@@ -126,4 +138,17 @@ const {
   border-radius: 5px;
   width: 12em;
 }
+
+.variation-option {
+  filter: brightness(0.7);
+}
+
+.variation-option img {
+  height: 130px;
+}
+
+.variation-option.selected {
+  filter: brightness(1);
+}
+
 </style>

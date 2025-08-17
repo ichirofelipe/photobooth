@@ -1,6 +1,8 @@
 import { ref, onBeforeUnmount, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router'
 import { usePhotoboothStore } from './data';
+import { Capacitor } from '@capacitor/core';
+import { CameraPreview } from '@capacitor-community/camera-preview';
 
 export default function useCamera() {
     const router = useRouter()
@@ -15,38 +17,74 @@ export default function useCamera() {
     let stream = null;
     let imageCount = 0;
     let shutterFlag = ref(false);
+    let isCameraRunning = false;
 
-    const startCamera = async () => {
-        try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            if (videoRef.value) {
-            videoRef.value.srcObject = stream;
-            startCountdown();
+    const startCamera = async (previewRef) => {
+        if (isCameraRunning) return;
+
+        if (Capacitor.getPlatform() === 'web') {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                if (videoRef.value) {
+                    videoRef.value.srcObject = stream;
+                    startCountdown();
+                    isCameraRunning = true;
+                }
+            } catch (err) {
+                console.error('Error accessing camera:', err);
             }
-        } catch (err) {
-            console.error('Error accessing camera:', err);
+        } else {
+            const rect = previewRef.value.getBoundingClientRect();
+            await ensurePermissions();
+            await CameraPreview.start({
+                parent: previewRef.value.id,
+                className: 'cameraPreview',
+                position: 'front',
+                x: rect.left,
+                y: rect.top,
+                width: rect.width,
+                height: rect.height,
+            });
+            startCountdown();
+            isCameraRunning = true;
         }
     };
 
-    const stopCamera = () => {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            stream = null;
+    const ensurePermissions = async () => {
+        const result = await CameraPreview.checkPermissions();
+        console.log(result.camera)
+        if (result.camera !== 'granted') {
+            await CameraPreview.requestPermissions();
         }
+    };
+
+    const stopCamera = async () => {
+        if (Capacitor.getPlatform() === 'web') {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        } else {
+            await CameraPreview.stop();
+        }
+
+        isCameraRunning = false;
     };
 
 
     const startCountdown = () => {
         if (timer.value) return;
         shutterFlag.value = false;
-        timer.value = setInterval(() => {
+        timer.value = setInterval( async () => {
             if (timeLeft.value > 0) {
                 console.log(timeLeft.value);
                 timeLeft.value--;
             } else {
                 clearInterval(timer.value);
-                capturePhoto();
-                if(imageCount < booth.selectedFrame.imgCount) {
+                timer.value = null;
+                
+                await capturePhoto()
+                if(imageCount < booth.selectedTemplate.imgCount) {
                     resetCountdown();
                     setTimeout(() => {
                         startCountdown();
@@ -74,24 +112,35 @@ export default function useCamera() {
         }, 1000)
     }
 
-    const capturePhoto = () => {
-        const video = videoRef.value;
-        const canvas = canvasRef.value;
-        if (!video || !canvas) return;
+    const capturePhoto = async () => {
+        if (Capacitor.getPlatform() === 'web') {
+            const video = videoRef.value;
+            const canvas = canvasRef.value;
+            if (!video || !canvas) return;
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
 
-        const context = canvas.getContext('2d');
-        context.scale(-1, 1);
-        context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-        context.restore();
+            const context = canvas.getContext('2d');
+            context.scale(-1, 1);
+            context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+            context.restore();
 
-        // Save as data URL
-        const imageData = canvas.toDataURL('image/png');
-        booth.setImage(imageData);
-        imageCount++;
-        shutterFlag.value = true;
+            // Save as data URL
+            const imageData = canvas.toDataURL('image/png');
+            booth.setImage(imageData);
+            imageCount++;
+            shutterFlag.value = true;
+        }
+        else
+        {
+            const result = await CameraPreview.capture({ quality: 45 });
+            const base64 = `data:image/jpeg;base64,${result.value}`;
+            await booth.setImage(base64);
+            imageCount++;
+            shutterFlag.value = true;
+        }
+
     };
 
     // Clean up when the component is unmounted
@@ -109,13 +158,13 @@ export default function useCamera() {
         }
     )
 
-    startCamera()
-
     return {
         shutterFlag,
         timer,
         timeLeft,
         videoRef,
-        canvasRef
+        canvasRef,
+        Capacitor,
+        startCamera
     }
 }

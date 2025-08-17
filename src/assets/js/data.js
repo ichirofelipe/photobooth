@@ -2,22 +2,23 @@ import { defineStore } from 'pinia';
 
 export const usePhotoboothStore = defineStore('photobooth', {
   state: () => ({
-    selectedFrame: null,
+    selectedTemplate: null,
+    selectedVariation: 0,
     uploadedImages: [],
     designs: {},
     selectedDesign: 0,
   }),
 
   actions: {
-    setFrame(frameId, imgCount) {
-      console.log(frameId, imgCount)
-      this.selectedFrame = {
-        id: frameId,
+    setTemplate(templateId, imgCount) {
+      console.log(templateId, imgCount)
+      this.selectedTemplate = {
+        id: templateId,
         imgCount: imgCount
       };
     },
-    setImage(imageData) {
-      loadImgFunc(imageData).then(img => {
+    async setImage(imageData) {
+      await loadImgFunc(imageData).then(img => {
         this.uploadedImages.push(
           {
             src: imageData,
@@ -30,8 +31,13 @@ export const usePhotoboothStore = defineStore('photobooth', {
     setDesign(design) {
       this.selectedDesign = design;
     },
+    setVariation(variation) {
+      console.log("SELECTED")
+      this.selectedVariation = variation;
+    },
     reset() {
-      this.selectedFrame = null;
+      this.selectedTemplate = null;
+      this.selectedVariation = 0;
       this.uploadedImages = [];
       this.selectedDesign = 0;
     },

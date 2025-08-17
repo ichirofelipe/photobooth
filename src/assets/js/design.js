@@ -1,42 +1,29 @@
 import { ref, onMounted } from 'vue';
-import {frameData1,frameData2,frameData3,frameData4} from '../../data/frameData.json';
+import { frames } from '../../data/frameData.json';
 import { frameDesigns } from '../../data/frameDesigns.json';
 import { usePhotoboothStore } from './data';
 
 // Get configuration for the base
 export default function useDesign() {
+    const booth = usePhotoboothStore();
     const baseWidth = 550;
     const baseHeight = 600;
     const responsiveWidth = ref(baseWidth);
     const responsiveHeight = ref(baseHeight);
     const diff = ref(0);
+    const selectedFrameId = booth.selectedTemplate?.id ?? 1;
+    const {frameData, variation} = frames[selectedFrameId];
+    const selectDesign = (designId) => {
+        booth.setDesign(designId);
+    }
+    const selectVariation = (variationId) => {
+        booth.setVariation(variationId);
+    }
 
     onMounted(() => {
         updateSizing();
         window.addEventListener("resize", updateSizing);
     })
-
-    const booth = usePhotoboothStore();
-    const getSelectedFrame = (id) => {
-        switch(id)
-        {
-            case 1:
-                return frameData1;
-            case 2:
-                return frameData2;
-            case 3:
-                return frameData3;
-            case 4:
-                return frameData4;
-        } 
-    }
-
-    const selectDesign = (designId) => {
-        booth.setDesign(designId);
-    }
-
-    const selectedFrameId = booth.selectedFrame?.id ?? 4;
-    const {frameData, imagesData, logoData} = getSelectedFrame(selectedFrameId);
 
     const updateSizing = () => {
         const minHeight = 900;
@@ -120,20 +107,13 @@ export default function useDesign() {
 
     const getLogoConfig = () => {
         if(!logo.value) return;
-        // return {
-        //     ...getImageRectConfig(logoData, diff.value, logo.value),
-        //     stroke: 'black',
-        //     strokeWidth: 1.25,
-        //     strokeEnabled: true,
-        //     cornerRadius: 3,
-        // };
-        return getImageRectConfig(logoData, diff.value, logo.value)
+        return getImageRectConfig(variation[booth.selectedVariation].logoData, diff.value, logo.value)
     };
 
     // Get configuration for each image
     const getImageConfig = (img, index) => {
-        if(!imagesData[index]) return;
-        const imgRectData = getImageRectConfig(imagesData[index], diff.value, img)
+        if(!variation[booth.selectedVariation].imagesData[index]) return;
+        const imgRectData = getImageRectConfig(variation[booth.selectedVariation].imagesData[index], diff.value, img)
 
         return {
             ...imgRectData,
@@ -213,6 +193,8 @@ export default function useDesign() {
         layerRef,
         frameDesigns,
         selectDesign,
-        getLogoConfig
+        selectVariation,
+        getLogoConfig,
+        variation
     }
 }
