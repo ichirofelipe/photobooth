@@ -1,7 +1,8 @@
 <template>
   <div id="parent" class="p-8 flex flex-col h-full justify-between">
-    <h1 class="text-3xl lg:text-4xl uppercase whitespace-nowrap tracking-wider">
+    <h1 class="whitespace-nowrap tracking-wider">
       Make it a masterpiece
+      <!-- Tokyo -->
     </h1>
     <div id="frame-editor" class="flex gap-x-3 mx-auto">
       <div id="frame-viewer" class="">
@@ -140,6 +141,7 @@ const {
 }
 
 .variation-option {
+  cursor: pointer;
   filter: brightness(0.7);
 }
 
@@ -147,7 +149,7 @@ const {
   height: 130px;
 }
 
-.variation-option.selected {
+.variation-option.selected, .variation-option:hover {
   filter: brightness(1);
 }
 

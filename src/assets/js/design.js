@@ -6,8 +6,9 @@ import { usePhotoboothStore } from './data';
 // Get configuration for the base
 export default function useDesign() {
     const booth = usePhotoboothStore();
-    const baseWidth = 550;
-    const baseHeight = 600;
+    const baseWidth = 566.9291338582676;
+    const baseHeight = 755.9055118110235;
+    const minHeight = 1100;
     const responsiveWidth = ref(baseWidth);
     const responsiveHeight = ref(baseHeight);
     const diff = ref(0);
@@ -26,7 +27,6 @@ export default function useDesign() {
     })
 
     const updateSizing = () => {
-        const minHeight = 900;
         const tmpDiff = (minHeight-window.innerHeight)/minHeight;
         diff.value = tmpDiff >= 0 ? tmpDiff : 0;
         responsiveWidth.value = baseWidth-(baseWidth*diff.value);
@@ -100,7 +100,7 @@ export default function useDesign() {
                 };
             });
         });
-        booth.loadImgData('/images/logo-white.png').then((img) => {
+        booth.loadImgData('/images/logo1.png').then((img) => {
             logo.value = img;
         });
     });

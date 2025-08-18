@@ -1,7 +1,23 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Bahuraksa';
+  src: url('./assets/fonts/Bahuraksa.woff2') format('woff2'),
+       url('./assets/fonts/Bahuraksa.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Serendity';
+  src: url('./assets/fonts/Serendity Script.woff2') format('woff2'),
+       url('./assets/fonts/Serendity Script.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Poppins', sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -15,8 +31,27 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.secondary-color {
+  color: #0eadb9;
+}
+
+.primary-color {
+  color: #fe6d6d;
+}
+
 h1 {
-  font-weight:  600;
+  font-family: "Bahuraksa", cursive;
+  color: #fe6d6d;
+  font-weight:  900;
+  font-size: 70px;
+
+  @media screen and (max-height: 768px){
+    font-size: 9vh;
+  }
+
+  @media screen and (max-height: 420px){
+    font-size: 2em;
+  }
 }
 
 a {
@@ -35,7 +70,7 @@ body {
   place-items: center;
   width: 100vw;
   height: 100vh;
-  background-color: #e5e5e5;
+  background-color: #fcf2e4;
 }
 body,html {
   overflow: hidden;
@@ -93,23 +128,25 @@ button:focus-visible {
 }
 
 .pb-button {
-  background-color: #353535;
+  font-size: 18px;
+  background-color: #fe6d6d;
   color: white;
   width: fit-content;
   display: block;
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1.5rem;
   border-radius: 2rem;
   align-self: center;
+  border: 3px solid transparent;
 }
 
 .pb-button:hover {
   color: white;
-  background-color: #5b5b5b;
+  border: 3px solid #0eadb9;
 }
 
 .pb-button.disabled {
   color: white;
-  background-color: #929292;
+  background-color: #ffcfcf;
   cursor: pointer;
   pointer-events: none;
 }
