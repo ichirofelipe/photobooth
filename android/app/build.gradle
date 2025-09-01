@@ -1,11 +1,12 @@
 apply plugin: 'com.android.application'
 
+
 android {
     namespace "com.photobooth.app"
-    compileSdk rootProject.ext.compileSdkVersion
+    compileSdkVersion rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "com.photobooth.app"
-        minSdkVersion rootProject.ext.minSdkVersion
+        minSdkVersion 22
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
@@ -21,6 +22,9 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+    }
+    sourceSets {
+        main.java.srcDirs += 'src/main/java'
     }
 }
 

@@ -31,7 +31,7 @@ const booth = usePhotoboothStore();
 .template-option img {
   width: auto;
   max-width: 20vw;
-  max-height: 40vh;
+  max-height: 35vh;
   margin: 0 auto;
   filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.6));
   transform: rotateZ(0deg) scale(1);

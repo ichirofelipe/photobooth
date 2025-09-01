@@ -12,11 +12,8 @@
     "android:build": "npm run build && npx cap copy android"
   },
   "dependencies": {
-    "@capacitor-community/camera-preview": "^7.0.2",
-    "@capacitor/android": "^7.4.2",
-    "@capacitor/cli": "^7.4.2",
-    "@capacitor/core": "^7.4.2",
-    "@capacitor/ios": "^7.4.2",
+    "@capacitor/android": "^5.7.8",
+    "@capacitor/core": "^5.7.8",
     "@heroicons/vue": "^2.2.0",
     "@tailwindcss/vite": "^4.1.11",
     "konva": "^9.3.22",
@@ -27,6 +24,7 @@
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^5.7.8",
     "@vitejs/plugin-vue": "^5.2.4",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.6",

@@ -1,5 +1,11 @@
 include ':app'
+include ':capacitor-android'
 include ':capacitor-cordova-android-plugins'
 project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
 
 apply from: 'capacitor.settings.gradle'
+
+include ':libnative', ':libausbc', ':libuvc'
+project(':libnative').projectDir = new File(rootDir, 'modules/libnative')
+project(':libausbc').projectDir = new File(rootDir, 'modules/libausbc')
+project(':libuvc').projectDir = new File(rootDir, 'modules/libuvc')

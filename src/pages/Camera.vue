@@ -1,29 +1,47 @@
 <template>
   <div class="p-8 flex flex-col h-full justify-between">
-    <div v-if="Capacitor.getPlatform() !== 'web'" ref="previewRef" id="cameraPreview"></div>
-    <video id="cameraPreviewWeb" v-else ref="videoRef" :class="{shutter: shutterFlag}" autoplay playsinline></video>
+    <!-- <div v-if="Capacitor.getPlatform() !== 'web'" ref="previewRef" id="cameraPreview"></div> -->
+    <video id="cameraPreviewWeb" ref="videoRef" :class="{shutter: shutterFlag}" autoplay playsinline></video>
     <CaptureTimer v-if="timer" :timeLeft="timeLeft"/>
     <canvas ref="canvasRef" style="display: none;"></canvas>
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import CaptureTimer from '../components/CaptureTimer.vue';
 import useCamera from "../assets/js/camera";
 import { onMounted, ref } from 'vue';
+import { UvcCameraPlugin } from '@/plugins/UvcCameraPlugin';
 
-const previewRef = ref<HTMLDivElement | null>(null);
+const devices = ref([]);
+
+onMounted(async () => {
+  try {
+    const result = await UvcCameraPlugin.listUvcDevices();
+    devices.value = result.devices;
+
+    // Listen for USB permission events
+    UvcCameraPlugin.addListener('usbPermission', (data) => {
+      console.log('USB permission:', data);
+    });
+  } catch (err) {
+    console.error('Error listing UVC devices', err);
+  }
+});
+
 const {
     shutterFlag,
     timer,
     timeLeft,
     videoRef,
     canvasRef,
-    Capacitor,
-    startCamera
+    startCamera,
 } = useCamera();
 
-onMounted( async() => startCamera(previewRef));
+
+// onMounted( async() => await getUvcDevices());
+
+// onBeforeUnmount(stop);
 
 </script>
 

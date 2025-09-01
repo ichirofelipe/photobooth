@@ -2,7 +2,8 @@ import { ref, onBeforeUnmount, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router'
 import { usePhotoboothStore } from './data';
 import { Capacitor } from '@capacitor/core';
-import { CameraPreview } from '@capacitor-community/camera-preview';
+
+// import { UsbCamera } from '@photobooth/usb-camera';
 
 export default function useCamera() {
     const router = useRouter()
@@ -19,7 +20,7 @@ export default function useCamera() {
     let shutterFlag = ref(false);
     let isCameraRunning = false;
 
-    const startCamera = async (previewRef) => {
+    const startCamera = async () => {
         if (isCameraRunning) return;
 
         if (Capacitor.getPlatform() === 'web') {
@@ -27,34 +28,20 @@ export default function useCamera() {
                 stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 if (videoRef.value) {
                     videoRef.value.srcObject = stream;
-                    startCountdown();
+                    // startCountdown();
                     isCameraRunning = true;
                 }
             } catch (err) {
                 console.error('Error accessing camera:', err);
             }
         } else {
-            const rect = previewRef.value.getBoundingClientRect();
-            await ensurePermissions();
-            await CameraPreview.start({
-                parent: previewRef.value.id,
-                className: 'cameraPreview',
-                position: 'front',
-                x: rect.left,
-                y: rect.top,
-                width: rect.width,
-                height: rect.height,
-            });
-            startCountdown();
-            isCameraRunning = true;
-        }
-    };
-
-    const ensurePermissions = async () => {
-        const result = await CameraPreview.checkPermissions();
-        console.log(result.camera)
-        if (result.camera !== 'granted') {
-            await CameraPreview.requestPermissions();
+            // console.log("starting camera preview");
+            // try {
+            //     const result = await UsbCamera.startPreview();
+            //     console.log('Result:', result);
+            // } catch (err) {
+            //     console.error('Error starting USB camera:', err);
+            // }
         }
     };
 
@@ -65,7 +52,7 @@ export default function useCamera() {
                 stream = null;
             }
         } else {
-            await CameraPreview.stop();
+            // await CameraPreview.stop();
         }
 
         isCameraRunning = false;
@@ -134,11 +121,11 @@ export default function useCamera() {
         }
         else
         {
-            const result = await CameraPreview.capture({ quality: 45 });
-            const base64 = `data:image/jpeg;base64,${result.value}`;
-            await booth.setImage(base64);
-            imageCount++;
-            shutterFlag.value = true;
+            // const result = await CameraPreview.capture({ quality: 45 });
+            // const base64 = `data:image/jpeg;base64,${result.value}`;
+            // await booth.setImage(base64);
+            // imageCount++;
+            // shutterFlag.value = true;
         }
 
     };
@@ -164,7 +151,6 @@ export default function useCamera() {
         timeLeft,
         videoRef,
         canvasRef,
-        Capacitor,
         startCamera
     }
 }
