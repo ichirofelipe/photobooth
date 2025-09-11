@@ -1,5 +1,5 @@
 <template>
-  <div id="parent" class="p-8 flex flex-col h-full justify-between">
+  <div id="parent">
     <h1 class="whitespace-nowrap tracking-wider">
       Make it a masterpiece
       <!-- Tokyo -->
@@ -15,7 +15,9 @@
             <!-- FRAME -->
             <v-rect :config="getFrameConfig()" />
 
-            <v-rect v-if="logo" :config="getLogoConfig()"/>
+            <v-rect :config="getHeaderConfig()"/>
+
+            <v-rect :config="getLogoConfig()"/>
 
             <!-- User Images -->
             <v-rect
@@ -23,6 +25,7 @@
               :key="index"
               :config="getImageConfig(img, index)"
             />
+
           </v-layer>
         </v-stage>
       </div>
@@ -31,14 +34,14 @@
         <div id="frames" class="frame-designs">
           <h3 class="font-medium text-lg py-1">FRAMES</h3>
           <ul id="design-list" class="frame-options grid grid grid-cols-2 gap-3 scrollbar">
-            <li v-for="(design, index) in frameDesigns" :class="{selected: booth.selectedDesign === index}" class="option col-span-1" @click="selectDesign(index)">
-              <img :src="design.src"/>
+            <li v-for="(frameDesign, index) in frameDesigns" :class="{selected: booth.selectedDesign === index}" class="option color col-span-1" @click="selectDesign(index)">
+              <div :style="'background:'+frameDesign.hex"></div>
             </li>
           </ul>
         </div>
         <div v-if="variation.length > 1" id="variation" class="frame-designs">
           <h3 class="font-medium text-lg py-1">VARIATION</h3>
-          <ul id="variation-list" class="frame-options grid grid grid-cols-5 gap-3 scrollbar">
+          <ul id="variation-list" class="frame-options grid grid grid-cols-3 gap-3 scrollbar">
             <li v-for="(option, index) in variation" class="variation-option col-span-1" :class="{selected: booth.selectedVariation === index}" @click=selectVariation(index)>
               <img :src="option.imgSrc"/>
             </li>
@@ -53,6 +56,7 @@
 <script setup>
 import useDesign from "../assets/js/design";
 import { usePhotoboothStore } from '../assets/js/data';
+import { frameDesigns } from '../data/frameDesigns.json';
 const booth = usePhotoboothStore();
 const {
   responsiveWidth,
@@ -63,11 +67,10 @@ const {
   frameData,
   loadedImages,
   layerRef,
-  frameDesigns,
   selectDesign,
   selectVariation,
   getLogoConfig,
-  logo,
+  getHeaderConfig,
   variation
 } = useDesign();
 </script>
@@ -78,6 +81,7 @@ const {
 }
 .konvajs-content canvas{
   box-shadow: inset 0 0px 8px rgba(0, 0, 0, 0.3);
+  border-radius: 5px;
 }
 
 .frame-designs {
@@ -91,8 +95,9 @@ const {
 
 .frame-options {
     overflow-y: auto;
-    max-height: 12em;
-    padding: 0 15px 15px 15px;
+    max-height: 13em;
+    padding: 15px;
+    min-width: 20em;
 }
 
 #design-list::-webkit-scrollbar {
@@ -114,30 +119,43 @@ const {
 .option {
   height: 5em;
   background: #ffffff;
-  /* border: 1px solid #ccc; */
   cursor: pointer;
-  border-radius: 5px;
+  border-radius: 3px;
+  position: relative;
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.9),
+              0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.option:not(.color) {
   filter: brightness(0.7);
 }
 
-.option:hover {
+.option:not(.color):hover {
   filter: brightness(1.2);
 }
 
-.option.selected {
+.option:not(.color).selected {
   filter: brightness(1.2);
 }
-.option.selected img {
+
+.option:not(.color).selected img {
   padding: 3px;
   background-color: #000;
 }
 
-.option img {
+.option.color:hover {
+  box-shadow: 0 0 0 2px white, 0 0 0 4px rgb(90, 90, 90);
+}
+
+.option.color.selected {
+  box-shadow: 0 0 0 2px white, 0 0 0 4px rgb(90, 90, 90);
+}
+
+.option > * {
   height: 100%;
   max-width: 100%;
   object-fit: cover;
-  border-radius: 5px;
-  width: 12em;
+  border-radius: 3px;
 }
 
 .variation-option {
@@ -146,11 +164,17 @@ const {
 }
 
 .variation-option img {
-  height: 130px;
+  max-height: 100px;
+  max-width: 6.5em;
+  transform: rotateZ(-7deg);
+  margin: 0 auto;
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.9),
+              0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
 .variation-option.selected, .variation-option:hover {
   filter: brightness(1);
+  transition: 0.5s;
 }
 
 </style>

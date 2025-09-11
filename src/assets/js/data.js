@@ -1,15 +1,44 @@
 import { defineStore } from 'pinia';
+import { headerData, logoData } from '../../data/designData.json';
 
 export const usePhotoboothStore = defineStore('photobooth', {
   state: () => ({
+    initialized: false,
+    baseHeaderDir: "/images/designs/",
+    baseLogoDir: "/images/logo/",
+    
+    // CHANGING VARIABLES
     selectedTemplate: null,
     selectedVariation: 0,
-    uploadedImages: [],
-    designs: {},
     selectedDesign: 0,
+    uploadedImages: [],
+
+    // INIT VARIABLES (one time)
+    headerImgs: [],
+    logoImgs: [],
   }),
 
   actions: {
+    async init() {
+      if (!this.initialized) {
+
+        // LOAD HEADER IMGS
+        await headerData.forEach( async (imgName, index) => {
+          const headerUrl = `${this.baseHeaderDir}${imgName}`;
+          await loadImgFunc(headerUrl).then(img => {
+            this.headerImgs[index] = img;
+          })
+        })
+
+        // LOAD LOGO IMGS
+        await logoData.forEach( async (imgName, index) => {
+          const logoUrl = `${this.baseLogoDir}${imgName}`;
+          await loadImgFunc(logoUrl).then(img => {
+            this.logoImgs[index] = img;
+          })
+        })
+      }
+    },
     setTemplate(templateId, imgCount) {
       console.log(templateId, imgCount)
       this.selectedTemplate = {
@@ -28,11 +57,10 @@ export const usePhotoboothStore = defineStore('photobooth', {
         );
       })
     },
-    setDesign(design) {
-      this.selectedDesign = design;
+    setDesign(frame) {
+      this.selectedDesign = frame;
     },
     setVariation(variation) {
-      console.log("SELECTED")
       this.selectedVariation = variation;
     },
     reset() {
@@ -44,13 +72,10 @@ export const usePhotoboothStore = defineStore('photobooth', {
     loadImgData (url) {
       return loadImgFunc(url);
     },
-    async loadDesigns(imageUrls = []) {
-      const loadPromises = imageUrls.map((src, index) => {
-        return loadImgFunc(src).then(img => {
-          this.designs[index] = img;
-        });
+    async loadDesign(imageUrl) {
+      return loadImgFunc(imageUrl).then(img => {
+        this.designs.push(img);
       });
-      await Promise.all(loadPromises);
     }
   },
 });

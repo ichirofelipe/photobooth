@@ -1,5 +1,5 @@
 <template>
-  <div id="parent" class="p-8">
+  <div id="parent">
     <h1 class="whitespace-nowrap tracking-wider">Choose your template</h1>
     <div id="template-selection" class="grid grid-cols-3">
     

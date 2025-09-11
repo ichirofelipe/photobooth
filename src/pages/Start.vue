@@ -1,5 +1,5 @@
 <template>
-  <div class="p-8 flex flex-col h-full justify-between">
+  <div class="flex flex-col h-full justify-between">
     <div></div>
     <img id="logo" src="/images/logo-transparent.png" alt="PRIM Photobooth">
     <!-- <h1 class="text-7xl font-bold tracking-widest">LOGO</h1> -->

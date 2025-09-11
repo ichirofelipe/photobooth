@@ -1,206 +1,249 @@
 {
     "frames": [
         {
-            "imgSrc": "/images/pose1.png",
+            "imgSrc": "/images/templates/frame1-1.png",
             "frameData": {
-                "width": 270,
-                "height": 600,
+                "width": 251.9685,
+                "height": 755.9055,
                 "strokeSize": 0.5,
                 "imageCount": 2
             },
             "variation": [
                 {
+                    "imgSrc": "/images/templates/frame1-1.png",
                     "logoData": {
-                        "x": 75,
-                        "y": 20,
+                        "x": 65.98425,
+                        "y": 725,
                         "width": 120,
-                        "height": 100
+                        "height": 30
+                    },
+                    "headerData": {
+                        "x": 0,
+                        "y": -20,
+                        "width": 251.9685,
+                        "height": 270
                     },
                     "imagesData": [
                         {
-                            "x": 9,
-                            "y": 140,
-                            "width": 250,
-                            "height": 150
+                            "x": 10.98425,
+                            "y": 230,
+                            "width": 230,
+                            "height": 155
                         },
                         {
-                            "x": 9,
-                            "y": 300,
-                            "width": 250,
-                            "height": 150
+                            "x": 10.98425,
+                            "y": 390,
+                            "width": 230,
+                            "height": 155
                         }
                     ]
                 }
             ]
         },
         {
-            "imgSrc": "/images/pose2.png",
+            "imgSrc": "/images/templates/frame2-1.png",
             "frameData": {
-                "width": 283.4645669291338,
-                "height": 755.9055118110235,
+                "width": 251.9685,
+                "height": 755.9055,
                 "strokeSize": 0.5,
                 "imageCount": 3
             },
             "variation": [
                 {
-                    "imgSrc": "/images/variation1.png",
+                    "imgSrc": "/images/templates/frame2-1.png",
                     "logoData": {
-                        "x": 71.7322834645669,
-                        "y": 8,
-                        "width": 140,
-                        "height": 140
+                        "x": 65.98425,
+                        "y": 725,
+                        "width": 120,
+                        "height": 30
+                    },
+                    "headerData": {
+                        "x": 0,
+                        "y": -20,
+                        "width": 251.9685,
+                        "height": 270
                     },
                     "imagesData": [
                         {
-                            "x": 15,
-                            "y": 160,
-                            "width": 253.4645669291338,
-                            "height": 170
+                            "x": 10.98425,
+                            "y": 230,
+                            "width": 230,
+                            "height": 155
                         },
                         {
-                            "x": 15,
-                            "y": 345,
-                            "width": 253.4645669291338,
-                            "height": 170
+                            "x": 10.98425,
+                            "y": 390,
+                            "width": 230,
+                            "height": 155
                         },
                         {
-                            "x": 15,
-                            "y": 530,
-                            "width": 253.4645669291338,
-                            "height": 170
+                            "x": 10.98425,
+                            "y": 550,
+                            "width": 230,
+                            "height": 155
                         }
                     ]
                 },
                 {
-                    "imgSrc": "/images/variation2.png",
+                    "imgSrc": "/images/templates/frame2-2.png",
                     "logoData": {
-                        "x": 85,
-                        "y": 510,
-                        "width": 100,
-                        "height": 75
+                        "x": 65.98425,
+                        "y": 0,
+                        "width": 120,
+                        "height": 30
+                    },
+                    "headerData": {
+                        "x": 0,
+                        "y": 490,
+                        "width": 251.9685,
+                        "height": 270
                     },
                     "imagesData": [
                         {
-                            "x": 9,
+                            "x": 10.98425,
                             "y": 30,
-                            "width": 250,
-                            "height": 150
+                            "width": 230,
+                            "height": 155
                         },
                         {
-                            "x": 9,
+                            "x": 10.98425,
                             "y": 190,
-                            "width": 250,
-                            "height": 150
+                            "width": 230,
+                            "height": 155
                         },
                         {
-                            "x": 9,
+                            "x": 10.98425,
                             "y": 350,
-                            "width": 250,
-                            "height": 150
+                            "width": 230,
+                            "height": 155
                         }
                     ]
                 },
                 {
-                    "imgSrc": "/images/variation3.png",
+                    "imgSrc": "/images/templates/frame2-3.png",
                     "logoData": {
-                        "x": 85,
-                        "y": 20,
-                        "width": 100,
-                        "height": 75
+                        "x": 65.98425,
+                        "y": 725,
+                        "width": 120,
+                        "height": 30
+                    },
+                    "headerData": {
+                        "x": 0,
+                        "y": -20,
+                        "width": 251.9685,
+                        "height": 270
                     },
                     "imagesData": [
                         {
-                            "x": 9,
-                            "y": 120,
-                            "width": 250,
-                            "height": 150
+                            "x": 10.98425,
+                            "y": 180,
+                            "width": 230,
+                            "height": 155
                         },
                         {
-                            "x": 9,
-                            "y": 280,
-                            "width": 250,
-                            "height": 150
+                            "x": 10.98425,
+                            "y": 340,
+                            "width": 230,
+                            "height": 155
                         },
                         {
-                            "x": 9,
-                            "y": 440,
-                            "width": 250,
-                            "height": 150
+                            "x": 10.98425,
+                            "y": 500,
+                            "width": 230,
+                            "height": 155
                         }
                     ]
                 }
             ]
         },
         {
-            "imgSrc": "/images/pose4.png",
+            "imgSrc": "/images/templates/frame3-1.png",
             "frameData": {
-                "width": 550,
-                "height": 380,
+                "width": 565,
+                "height": 376.67,
                 "strokeSize": 0.5,
                 "imageCount": 4
             },
             "variation": [
                 {
-                    "imgSrc": "/images/pose4.png",
+                    "imgSrc": "/images/templates/frame3-1.png",
                     "logoData": {
-                        "x": 355,
-                        "y": 60,
-                        "width": 170,
-                        "height": 125
+                        "x": 223.5,
+                        "y": 347,
+                        "width": 120,
+                        "height": 30
+                    },
+                    "headerData": {
+                        "x": 320,
+                        "y": -20,
+                        "width": 251.9685,
+                        "height": 270
                     },
                     "imagesData": [
                         {
-                            "x": 10,
-                            "y": 15,
-                            "width": 320,
-                            "height": 220
+                            "x": 7,
+                            "y": 6,
+                            "width": 325,
+                            "height": 216
                         },
                         {
-                            "x": 10,
-                            "y": 245,
-                            "width": 170,
+                            "x": 7,
+                            "y": 227,
+                            "width": 180,
                             "height": 125
                         },
                         {
-                            "x": 190,
-                            "y": 245,
-                            "width": 170,
+                            "x": 192,
+                            "y": 227,
+                            "width": 180,
                             "height": 125
                         },
                         {
-                            "x": 370,
-                            "y": 245,
-                            "width": 170,
+                            "x": 377,
+                            "y": 227,
+                            "width": 180,
                             "height": 125
                         }
                     ]
                 },
                 {
-                    "imgSrc": "/images/pose3.png",
+                    "imgSrc": "/images/templates/frame3-2.png",
+                    "logoData": {
+                        "x": 223.5,
+                        "y": 347,
+                        "width": 120,
+                        "height": 30
+                    },
+                    "headerData": {
+                        "x": -10,
+                        "y": -20,
+                        "width": 251.9685,
+                        "height": 270
+                    },
                     "imagesData": [
                         {
-                            "x": 20,
-                            "y": 15,
-                            "width": 250,
-                            "height": 150
+                            "x": 232,
+                            "y": 6,
+                            "width": 325,
+                            "height": 216
                         },
                         {
-                            "x": 280,
-                            "y": 15,
-                            "width": 250,
-                            "height": 150
+                            "x": 7,
+                            "y": 227,
+                            "width": 180,
+                            "height": 125
                         },
                         {
-                            "x": 20,
-                            "y": 175,
-                            "width": 250,
-                            "height": 150
+                            "x": 192,
+                            "y": 227,
+                            "width": 180,
+                            "height": 125
                         },
                         {
-                            "x": 280,
-                            "y": 175,
-                            "width": 250,
-                            "height": 150
+                            "x": 377,
+                            "y": 227,
+                            "width": 180,
+                            "height": 125
                         }
                     ]
                 }

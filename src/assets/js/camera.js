@@ -2,8 +2,7 @@ import { ref, onBeforeUnmount, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router'
 import { usePhotoboothStore } from './data';
 import { Capacitor } from '@capacitor/core';
-
-// import { UsbCamera } from '@photobooth/usb-camera';
+import { UvcCameraPlugin } from '@/plugins/UvcCameraPlugin';
 
 export default function useCamera() {
     const router = useRouter()
@@ -11,6 +10,8 @@ export default function useCamera() {
     const booth = usePhotoboothStore();
     const videoRef = ref(null);
     const canvasRef = ref(null);
+    const UVCSrcRef = ref('');
+    const loaderDelay = 5000;
     const duration = 1; // countdown in seconds
     const timeLeft = ref(duration);
     const stopCameraPage = ['Home', "Template"];
@@ -19,6 +20,7 @@ export default function useCamera() {
     let imageCount = 0;
     let shutterFlag = ref(false);
     let isCameraRunning = false;
+    let frameListener;
 
     const startCamera = async () => {
         if (isCameraRunning) return;
@@ -28,20 +30,45 @@ export default function useCamera() {
                 stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 if (videoRef.value) {
                     videoRef.value.srcObject = stream;
-                    // startCountdown();
+                    startCountdown();
                     isCameraRunning = true;
                 }
             } catch (err) {
                 console.error('Error accessing camera:', err);
             }
         } else {
-            // console.log("starting camera preview");
-            // try {
-            //     const result = await UsbCamera.startPreview();
-            //     console.log('Result:', result);
-            // } catch (err) {
-            //     console.error('Error starting USB camera:', err);
-            // }
+            const { devices } = await UvcCameraPlugin.listUvcDevices();
+            const d = devices[0];
+            if (!d) {
+                console.warn('No UVC devices found');
+                return;
+            }
+            frameListener = await UvcCameraPlugin.addListener('frame', (payload) => {
+                if(payload.file)
+                {
+                    UVCSrcRef.value = Capacitor.convertFileSrc(payload.file) + "?" + Date.now();
+                }
+                else
+                {
+                    UVCSrcRef.value = 'data:image/jpeg;base64,' + payload.data;
+                }
+            });
+
+            await UvcCameraPlugin.startPreview({
+                vendorId: d.vendorId,
+                productId: d.productId,
+                mode: "file",
+                width: 1280,
+                height: 720,
+                throttleMs: 100,
+                jpegQuality: 100,
+                minEmitIntervalMs: 100, // ~14 fps over the bridge
+            });
+
+            const timeOut = setTimeout( async () => {
+                startCountdown();
+                clearTimeout(timeOut);
+            }, loaderDelay);
         }
     };
 
@@ -52,7 +79,8 @@ export default function useCamera() {
                 stream = null;
             }
         } else {
-            // await CameraPreview.stop();
+            try { await UvcCameraPlugin.stopPreview(); } catch {}
+            if (frameListener && frameListener.remove) frameListener.remove();
         }
 
         isCameraRunning = false;
@@ -121,6 +149,12 @@ export default function useCamera() {
         }
         else
         {
+            const res = await UvcCameraPlugin.capturePhoto();
+            const url = Capacitor.convertFileSrc(res.file);
+            await booth.setImage(url);
+            imageCount++;
+            shutterFlag.value = true;
+            
             // const result = await CameraPreview.capture({ quality: 45 });
             // const base64 = `data:image/jpeg;base64,${result.value}`;
             // await booth.setImage(base64);
@@ -151,6 +185,7 @@ export default function useCamera() {
         timeLeft,
         videoRef,
         canvasRef,
+        UVCSrcRef,
         startCamera
     }
 }

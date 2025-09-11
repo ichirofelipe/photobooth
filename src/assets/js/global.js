@@ -1,6 +1,5 @@
 import { useRoute, useRouter } from 'vue-router'
 import { usePhotoboothStore } from './data';
-import { frameDesigns } from '../../data/frameDesigns.json';
 import { pageConfig } from '../../data/pageConfig.json';
 import { watch } from 'vue';
 import { ref, onMounted, onUnmounted } from "vue";
@@ -11,6 +10,7 @@ export default function usePhotoboothApp() {
   const booth = usePhotoboothStore();
   const isMobile = ref(false);
   const isPortrait = ref(true);
+  booth.init();
 
   const pagesToResetData = pageConfig.map((page) => {
     if(page.resetData === true) {
@@ -29,8 +29,6 @@ export default function usePhotoboothApp() {
     } else {
       window.matchMedia("(orientation: portrait)").addEventListener("change", updateOrientation);
     }
-
-    await booth.loadDesigns(frameDesigns.map(design => design.src));
   });
 
   onUnmounted(() => {

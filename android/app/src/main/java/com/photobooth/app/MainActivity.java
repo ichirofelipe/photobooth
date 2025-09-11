@@ -6,9 +6,8 @@ import com.photobooth.app.uvc.UvcCameraPlugin;
 
 public class MainActivity extends BridgeActivity {
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
+    public void onCreate(Bundle savedInstanceState) {
         registerPlugin(UvcCameraPlugin.class);
+        super.onCreate(savedInstanceState);
     }
 }

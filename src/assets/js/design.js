@@ -6,13 +6,13 @@ import { usePhotoboothStore } from './data';
 // Get configuration for the base
 export default function useDesign() {
     const booth = usePhotoboothStore();
-    const baseWidth = 566.9291338582676;
-    const baseHeight = 755.9055118110235;
+    const baseWidth = 567;
+    const baseHeight = 756;
     const minHeight = 1100;
     const responsiveWidth = ref(baseWidth);
     const responsiveHeight = ref(baseHeight);
     const diff = ref(0);
-    const selectedFrameId = booth.selectedTemplate?.id ?? 1;
+    const selectedFrameId = booth.selectedTemplate?.id ?? 2;
     const {frameData, variation} = frames[selectedFrameId];
     const selectDesign = (designId) => {
         booth.setDesign(designId);
@@ -51,8 +51,9 @@ export default function useDesign() {
             y: y,
             width: width,
             height: height,
-            fillPatternImage: booth.designs[booth.selectedDesign],
-            fillPatternScale: {x: scaleFactorWidth, y: scaleFactorWidth},
+            // fillPatternImage: frameDesigns[booth.selectedDesign] ?? null, //DEPRECATED
+            fill: frameDesigns[booth.selectedDesign]?.hex ?? null,
+            fillPatternScale: {x: scaleFactorWidth, y: scaleFactorWidth}, //DEPRECATED
             stroke: 'black',
             strokeWidth: frameStrokeWidth,
             cornerRadius: 3
@@ -65,22 +66,22 @@ export default function useDesign() {
     //test values
     const testImages = ref([
         {
-            src: '/images/captures/cat_image.avif',
+            src: '/images/captures/sample1.webp',
             width: 1200,
             height: 1197,
         },
         {
-            src: '/images/captures/cat_image.avif',
+            src: '/images/captures/sample2.webp',
             width: 1200,
             height: 1197,
         },
         {
-            src: '/images/captures/cat_image.avif',
+            src: '/images/captures/sample3.webp',
             width: 1200,
             height: 1197,
         },
         {
-            src: '/images/captures/cat_image.avif',
+            src: '/images/captures/sample4.webp',
             width: 1200,
             height: 1197,
         },
@@ -88,7 +89,6 @@ export default function useDesign() {
 
     // Define image data
     const images = ref(booth.uploadedImages.length > 0 ? booth.uploadedImages : testImages );
-    const logo = ref(null);
 
     // Load images
     onMounted(() => {
@@ -100,14 +100,18 @@ export default function useDesign() {
                 };
             });
         });
-        booth.loadImgData('/images/logo1.png').then((img) => {
-            logo.value = img;
-        });
     });
 
+    const getHeaderConfig = () => {
+        const selectedHeader = frameDesigns[booth.selectedDesign].header;
+        if(!booth.headerImgs[selectedHeader]) return;
+        return getImageRectConfig(variation[booth.selectedVariation].headerData, diff.value, booth.headerImgs[selectedHeader])
+    }
+
     const getLogoConfig = () => {
-        if(!logo.value) return;
-        return getImageRectConfig(variation[booth.selectedVariation].logoData, diff.value, logo.value)
+        const selectedLogo = frameDesigns[booth.selectedDesign].logo;
+        if(!booth.logoImgs[selectedLogo]) return;
+        return getImageRectConfig(variation[booth.selectedVariation].logoData, diff.value, booth.logoImgs[selectedLogo])
     };
 
     // Get configuration for each image
@@ -117,10 +121,7 @@ export default function useDesign() {
 
         return {
             ...imgRectData,
-            stroke: 'black',
-            strokeWidth: 1.25,
-            strokeEnabled: true,
-            cornerRadius: 3
+            cornerRadius: 1
         };
     };
 
@@ -186,15 +187,14 @@ export default function useDesign() {
         responsiveHeight,
         getFrameConfig,
         frameData,
-        logo,
         loadedImages,
         getImageConfig,
         handlePrint,
         layerRef,
-        frameDesigns,
         selectDesign,
         selectVariation,
         getLogoConfig,
+        getHeaderConfig,
         variation
     }
 }

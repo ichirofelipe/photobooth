@@ -1,0 +1,11 @@
+{
+    "headerData": [ 
+        "header.png", 
+        "header-white.png"
+    ],
+    "logoData": [ 
+        "bottom-logo-black.svg", 
+        "bottom-logo-white.svg",
+        "bottom-logo-gray.svg"
+    ]
+}
