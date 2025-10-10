@@ -5,7 +5,7 @@ import { usePhotoboothStore } from './data';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 
 // Get configuration for the base
-export default function useDesign() {
+export default function useSetup() {
     const booth = usePhotoboothStore();
     const baseWidth = 567;
     const baseHeight = 756;
@@ -65,7 +65,7 @@ export default function useDesign() {
     const loadedImages = ref({});
     
     //test values
-    const testImages = ref([
+    const testImages = [
         {
             src: '/images/captures/sample1.webp',
             width: 1200,
@@ -86,14 +86,11 @@ export default function useDesign() {
             width: 1200,
             height: 1197,
         },
-    ])
-
-    // Define image data
-    const images = ref(booth.uploadedImages.length > 0 ? booth.uploadedImages : testImages );
+    ]
 
     // Load images
     onMounted(() => {
-        images.value.forEach((img, index) => {
+        testImages.forEach((img, index) => {
             booth.loadImgData(img.src).then((imgData) => {
                 loadedImages.value = {
                     ...loadedImages.value,
@@ -154,48 +151,6 @@ export default function useDesign() {
         };
     }
 
-    const handlePrint = async () => {
-        const dataURL = layerRef.value.getNode().toDataURL({ pixelRatio: 8 });
-
-        if (Capacitor.getPlatform() === 'web') {
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>Print</title>
-                    <style>
-                    body, html {
-                        margin: 0;
-                        padding: 0;
-                        height: 100%;
-                    }
-                    img {
-                        width: 100%;
-                        height: auto;
-                        display: block;
-                    }
-                    </style>
-                </head>
-                <body onload="window.print(); window.close();">
-                    <img src="${dataURL}" />
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-        }
-        else {
-            const base64Data = dataURL.split(',')[1];
-
-            await Filesystem.writeFile({
-                path: `konva_${Date.now()}.png`,
-                data: base64Data,
-                directory: Directory.Documents, // or Directory.External on Android
-            });
-
-            console.log("Saved successfully!");
-        }
-    };
-
     return {
         responsiveWidth,
         responsiveHeight,
@@ -203,12 +158,12 @@ export default function useDesign() {
         frameData,
         loadedImages,
         getImageConfig,
-        handlePrint,
         layerRef,
         selectDesign,
         selectVariation,
         getLogoConfig,
         getHeaderConfig,
-        variation
+        variation,
+        frames
     }
 }

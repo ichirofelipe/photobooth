@@ -21,7 +21,7 @@ export default function usePhotoboothApp() {
   onMounted(async () => {
     // CALL FUNCTIONS
     checkMobile();
-    startFullscreen();
+    // startFullscreen();
     updateOrientation();
 
     if (window.screen.orientation) {

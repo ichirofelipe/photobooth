@@ -1,9 +1,10 @@
 <template>
   <div id="parent">
     <h1 class="whitespace-nowrap tracking-wider">Choose your template</h1>
-    <div id="template-selection" class="grid grid-cols-3">
+    <div id="template-selection" class="grid grid-cols-4">
     
       <a v-for="(frame, index) in frames" class="self-center template-option" :class="{active: booth.selectedTemplate?.id === index}" @click=booth.setTemplate(index,frame.frameData.imageCount)>
+        <label class="primary-color">{{ frame.label }}</label>
         <img :src="frame.imgSrc" class="pb-template"/>
       </a>
       
@@ -21,32 +22,49 @@ const booth = usePhotoboothStore();
 
 <style scoped>
 #template-selection {
-  column-gap: 3rem;
+  column-gap: 3vw;
+  width: fit-content;
+  margin: 0 auto;
 }
 .template-option {
   cursor: pointer;
   position: relative;
+  height: 100%;
+  padding-bottom: 2em;
+  display: flex;
 }
 
 .template-option img {
-  width: auto;
+  width: fit-content;
   max-width: 20vw;
   max-height: 35vh;
-  margin: 0 auto;
+  margin: auto;
   filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.6));
-  transform: rotateZ(0deg) scale(1);
+  transform: scale(1);
 }
 
-.template-option:nth-child(1) {
-  transform: rotateZ(-8deg);
+.template-option label {
+  position: absolute;
+  border-radius: 5px;
+  font-size: 0.8em;
+  white-space: nowrap;
+  font-weight: bold;
+  display: block;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
-.template-option:nth-child(2) {
-  transform: rotateZ(8deg);
+.template-option:nth-child(even) img {
+  transform: rotateZ(-4deg);
+}
+
+.template-option:nth-child(odd) img {
+  transform: rotateZ(4deg);
 }
 
 .template-option.active img {
-  transform: rotateZ(0deg) scale(1.2);
+  transform: scale(1.2);
   filter: drop-shadow(0px 0px 10px #0eadb9);
 }
 

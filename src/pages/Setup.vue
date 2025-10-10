@@ -1,7 +1,7 @@
 <template>
   <div id="parent">
     <h1 class="whitespace-nowrap tracking-wider">
-      Make it a masterpiece
+      Setup
       <!-- Tokyo -->
     </h1>
     <div id="frame-editor" class="flex gap-x-3 mx-auto">
@@ -33,13 +33,28 @@
       <div class="flex flex-col gap-3">
         <div id="frames" class="frame-designs">
           <h3 class="font-medium text-lg py-1">COLOR</h3>
+          <div class="color-picker">
+            <ColorPicker v-model:pure-color="color" format="hex" />
+            <input type="text" :value="color">
+            <button>add</button>
+          </div>
           <ul id="design-list" class="frame-options grid grid grid-cols-2 gap-3 scrollbar">
             <li v-for="(frameDesign, index) in frameDesigns" :class="{selected: booth.selectedDesign === index}" class="option color col-span-1" @click="selectDesign(index)">
               <div :style="'background:'+frameDesign.hex"></div>
             </li>
           </ul>
         </div>
-        <div v-if="variation.length > 1" id="variation" class="frame-designs">
+
+        <div id="frames" class="frame-designs">
+          <h3 class="font-medium text-lg py-1">FRAMES</h3>
+          <ul id="variation-list" class="frame-options grid grid grid-cols-3 gap-3 scrollbar">
+            <li v-for="(option, index) in frames" class="variation-option col-span-1" :class="{selected: booth.selectedTemplate?.id ?? 2 === index}" @click=booth.setTemplate(index,option.frameData.imageCount)>
+              <img :src="option.imgSrc"/>
+            </li>
+          </ul>
+        </div>
+
+        <div v-if="variation.length > 0" id="variation" class="frame-designs">
           <h3 class="font-medium text-lg py-1">VARIATION</h3>
           <ul id="variation-list" class="frame-options grid grid grid-cols-3 gap-3 scrollbar">
             <li v-for="(option, index) in variation" class="variation-option col-span-1" :class="{selected: booth.selectedVariation === index}" @click=selectVariation(index)>
@@ -49,21 +64,24 @@
         </div>
       </div>
     </div>
-    <!-- <button @click="handlePrint" class="pb-button p-5">PROCEED TO PRINT</button> -->
-    <button class="pb-button p-5">PROCEED TO PRINT</button>
+    <button class="pb-button p-5">SAVE & CONTINUE</button>
   </div>
 </template>
 
 <script setup>
-import useDesign from "../assets/js/design";
+import useSetup from "../assets/js/setup";
 import { usePhotoboothStore } from '../assets/js/data';
 import { frameDesigns } from '../data/frameDesigns.json';
+import { ref } from 'vue'
+import { ColorPicker } from "vue3-colorpicker";
+import "vue3-colorpicker/style.css";
+
+const color = ref('#112357');
 const booth = usePhotoboothStore();
 const {
   responsiveWidth,
   responsiveHeight,
   getFrameConfig,
-  handlePrint,
   getImageConfig,
   frameData,
   loadedImages,
@@ -72,8 +90,9 @@ const {
   selectVariation,
   getLogoConfig,
   getHeaderConfig,
+  frames,
   variation
-} = useDesign();
+} = useSetup();
 </script>
 
 <style>
@@ -101,17 +120,17 @@ const {
     min-width: 20em;
 }
 
-#design-list::-webkit-scrollbar {
+.frame-options::-webkit-scrollbar {
     width: 10px;
 }
         
-#design-list::-webkit-scrollbar-track {
+.frame-options::-webkit-scrollbar-track {
     background-color: transparent;
     border: 1.5px solid #7e7e7e;
     border-radius: 8px;
 }
         
-#design-list::-webkit-scrollbar-thumb {
+.frame-options::-webkit-scrollbar-thumb {
     background-color: #f1f1f1;
     border: 2px solid #616161;
     border-radius: 8px;
@@ -176,6 +195,33 @@ const {
 .variation-option.selected, .variation-option:hover {
   filter: brightness(1);
   transition: 0.5s;
+}
+
+.color-picker {
+    display: flex;
+    border: 1px solid #999;
+    border-radius: 5px;
+    overflow: hidden;
+    width: calc(100% - 25px);
+    margin: 0 auto;
+}
+
+.color-picker .vc-color-wrap {
+    margin: 0;
+    box-shadow: none;
+    width: 70px;
+}
+
+.color-picker input {
+    width: 100%;
+    padding: 0 5px;
+}
+
+.color-picker button {
+    padding: 0 10px;
+    color: #eee;
+    font-size: 12px;
+    border-radius: 0;
 }
 
 </style>

@@ -4,7 +4,6 @@ export default function rotatePopup() {
     const videoRef = ref(null);
     
     onMounted(() => {
-        console.log("WOW")
         initRotatePhoneVideo();
     });
 

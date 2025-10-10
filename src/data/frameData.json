@@ -1,7 +1,66 @@
 {
     "frames": [
         {
-            "imgSrc": "/images/templates/frame1-1.png",
+            "imgSrc": "/images/templates/template0.png",
+            "label": "2 shots - 1 copy",
+            "frameData": {
+                "width": 251.9685,
+                "height": 755.9055,
+                "strokeSize": 0.5,
+                "imageCount": 2
+            },
+            "variation": [
+                {
+                    "imgSrc": "/images/templates/frame0-1.png",
+                    "logoData": {
+                        "x": 65.98425,
+                        "y": 725,
+                        "width": 120,
+                        "height": 30
+                    },
+                    "headerData": {
+                        "x": 0,
+                        "y": -20,
+                        "width": 251.9685,
+                        "height": 270
+                    },
+                    "imagesData": [
+                        {
+                            "x": 10.98425,
+                            "y": 230,
+                            "width": 230,
+                            "height": 155
+                        }
+                    ]
+                },
+                {
+                    "imgSrc": "/images/templates/frame0-2.png",
+                    "logoData": {
+                        "x": 65.98425,
+                        "y": 725,
+                        "width": 120,
+                        "height": 30
+                    },
+                    "headerData": {
+                        "x": 0,
+                        "y": -20,
+                        "width": 251.9685,
+                        "height": 270
+                    },
+                    "imagesData": [
+                        {
+                            "x": 10.98425,
+                            "y": 230,
+                            "width": 230,
+                            "height": 155
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "imgSrc": "/images/templates/template1.png",
+            "label": "4 shots - 1 copy",
             "frameData": {
                 "width": 251.9685,
                 "height": 755.9055,
@@ -41,7 +100,8 @@
             ]
         },
         {
-            "imgSrc": "/images/templates/frame2-1.png",
+            "imgSrc": "/images/templates/template2.png",
+            "label": "6 shots - 1 copy",
             "frameData": {
                 "width": 251.9685,
                 "height": 755.9055,
@@ -158,6 +218,7 @@
         },
         {
             "imgSrc": "/images/templates/frame3-1.png",
+            "label": "4 shots - 1 copy",
             "frameData": {
                 "width": 565,
                 "height": 376.67,
