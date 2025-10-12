@@ -7,8 +7,8 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 // Get configuration for the base
 export default function useSetup() {
     const booth = usePhotoboothStore();
-    const baseWidth = 567;
-    const baseHeight = 756;
+    const baseWidth = 600;
+    const baseHeight = 900;
     const minHeight = 1100;
     const responsiveWidth = ref(baseWidth);
     const responsiveHeight = ref(baseHeight);

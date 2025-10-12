@@ -30,7 +30,7 @@ const booth = usePhotoboothStore();
   cursor: pointer;
   position: relative;
   height: 100%;
-  padding-bottom: 2em;
+  padding-bottom: 2.5em;
   display: flex;
 }
 
@@ -46,7 +46,7 @@ const booth = usePhotoboothStore();
 .template-option label {
   position: absolute;
   border-radius: 5px;
-  font-size: 0.8em;
+  font-size: 0.9em;
   white-space: nowrap;
   font-weight: bold;
   display: block;
@@ -64,7 +64,7 @@ const booth = usePhotoboothStore();
 }
 
 .template-option.active img {
-  transform: scale(1.2);
+  transform: scale(1.1);
   filter: drop-shadow(0px 0px 10px #0eadb9);
 }
 

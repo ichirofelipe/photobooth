@@ -7,14 +7,14 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 // Get configuration for the base
 export default function useDesign() {
     const booth = usePhotoboothStore();
-    const baseWidth = 567;
-    const baseHeight = 756;
+    const baseWidth = ref(500);
+    const baseHeight = ref(750);
     const minHeight = 1100;
-    const responsiveWidth = ref(baseWidth);
-    const responsiveHeight = ref(baseHeight);
+    const responsiveWidth = ref(baseWidth.value);
+    const responsiveHeight = ref(baseHeight.value);
     const diff = ref(0);
     const selectedFrameId = booth.selectedTemplate?.id ?? 2;
-    const {frameData, variation} = frames[selectedFrameId];
+    const {frameData, variation, baseData} = frames[selectedFrameId];
     const selectDesign = (designId) => {
         booth.setDesign(designId);
     }
@@ -30,20 +30,21 @@ export default function useDesign() {
     const updateSizing = () => {
         const tmpDiff = (minHeight-window.innerHeight)/minHeight;
         diff.value = tmpDiff >= 0 ? tmpDiff : 0;
-        responsiveWidth.value = baseWidth-(baseWidth*diff.value);
-        responsiveHeight.value = baseHeight-(baseHeight*diff.value);
+        baseWidth.value = baseData.width;
+        baseHeight.value = baseData.height;
+        responsiveWidth.value = baseWidth.value-(baseWidth.value*diff.value);
+        responsiveHeight.value = baseHeight.value-(baseHeight.value*diff.value);
 
-        console.log(diff.value,window.innerHeight,baseWidth-(baseWidth*diff.value))
+        console.log(diff.value,window.innerHeight,baseWidth.value-(baseWidth.value*diff.value))
     }
 
     // Get configuration for the frame
-    const getFrameConfig = () => {
+    const getFrameConfig = (multiples = 0) => {
         const resWidth = frameData.width-(frameData.width*diff.value);
         const resHeight = frameData.height-(frameData.height*diff.value);
-
         const scaleFactorWidth = resWidth / frameData.width;
         const frameStrokeWidth = frameData.strokeSize;
-        const x = ((responsiveWidth.value - (resWidth)) / 2) + (frameStrokeWidth / 2);
+        const x = (frameStrokeWidth / 2) + (resWidth * multiples);
         const y = ((responsiveHeight.value - resHeight) / 2) + (frameStrokeWidth / 2);
         const width = resWidth - frameStrokeWidth;
         const height = resHeight - frameStrokeWidth;
@@ -86,6 +87,26 @@ export default function useDesign() {
             width: 1200,
             height: 1197,
         },
+        {
+            src: '/images/captures/sample1.webp',
+            width: 1200,
+            height: 1197,
+        },
+        {
+            src: '/images/captures/sample2.webp',
+            width: 1200,
+            height: 1197,
+        },
+        {
+            src: '/images/captures/sample3.webp',
+            width: 1200,
+            height: 1197,
+        },
+        {
+            src: '/images/captures/sample4.webp',
+            width: 1200,
+            height: 1197,
+        },
     ])
 
     // Define image data
@@ -103,22 +124,24 @@ export default function useDesign() {
         });
     });
 
-    const getHeaderConfig = () => {
+    const getHeaderConfig = (multiples = 0) => {
         const selectedHeader = frameDesigns[booth.selectedDesign].header;
         if(!booth.headerImgs[selectedHeader]) return;
-        return getImageRectConfig(variation[booth.selectedVariation].headerData, diff.value, booth.headerImgs[selectedHeader])
+        return getImageRectConfig(variation[booth.selectedVariation].headerData, diff.value, booth.headerImgs[selectedHeader], multiples)
     }
 
-    const getLogoConfig = () => {
+    const getLogoConfig = (multiples = 0) => {
         const selectedLogo = frameDesigns[booth.selectedDesign].logo;
         if(!booth.logoImgs[selectedLogo]) return;
-        return getImageRectConfig(variation[booth.selectedVariation].logoData, diff.value, booth.logoImgs[selectedLogo])
+        return getImageRectConfig(variation[booth.selectedVariation].logoData, diff.value, booth.logoImgs[selectedLogo], multiples)
     };
 
     // Get configuration for each image
-    const getImageConfig = (img, index) => {
-        if(!variation[booth.selectedVariation].imagesData[index]) return;
-        const imgRectData = getImageRectConfig(variation[booth.selectedVariation].imagesData[index], diff.value, img)
+    const getImageConfig = (index, multiples = 0, tmp) => {
+        const newIndex = Number(index)+tmp;
+        if(!variation[booth.selectedVariation].imagesData[index] || !loadedImages.value[newIndex]) return;
+
+        const imgRectData = getImageRectConfig(variation[booth.selectedVariation].imagesData[index], diff.value, loadedImages.value[newIndex], multiples)
 
         return {
             ...imgRectData,
@@ -126,7 +149,7 @@ export default function useDesign() {
         };
     };
 
-    const getImageRectConfig = (imgFrameData, scale, imgData) => {
+    const getImageRectConfig = (imgFrameData, scale, imgData, multiples) => {
         const resWidth = imgFrameData.width-(imgFrameData.width*scale);
         const resHeight = imgFrameData.height-(imgFrameData.height*scale);
         const resX = imgFrameData.x-(imgFrameData.x*scale);
@@ -137,8 +160,8 @@ export default function useDesign() {
         const scaledImageWidth =  (scaleFactorWidth * imgData.width) ;
         const verticalOffset = (scaledImageHeight - resHeight) / 2;
         const horizontalOffset = (scaledImageWidth - resWidth) / 2;
-        const imageOffsetX = getFrameConfig().x + resX;
-        const imageOffsetY = getFrameConfig().y + resY;
+        const imageOffsetX = getFrameConfig(multiples).x + resX;
+        const imageOffsetY = getFrameConfig(multiples).y + resY;
         const finalOffsetY = (verticalOffset/scaledImageHeight * imgData.height);
         const finalOffsetX = (horizontalOffset/scaledImageWidth * imgData.width);
 
@@ -164,14 +187,22 @@ export default function useDesign() {
                 <head>
                     <title>Print</title>
                     <style>
+                    @page {
+                        size: 4in 6in; /* 4R photo size */
+                        margin: 0; /* No margins */
+                    }
+
                     body, html {
                         margin: 0;
                         padding: 0;
-                        height: 100%;
+                        width: 4in;
+                        height: 6in;
                     }
+
                     img {
                         width: 100%;
-                        height: auto;
+                        height: 100%;
+                        object-fit: cover; /* Crop/fill the space like a photo */
                         display: block;
                     }
                     </style>

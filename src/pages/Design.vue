@@ -6,24 +6,24 @@
     </h1>
     <div id="frame-editor" class="flex gap-x-3 mx-auto">
       <div id="frame-viewer" class="">
-        <v-stage ref="stageRef" :config="{width: responsiveWidth, height: responsiveHeight}">
+        <v-stage ref="layerRef" :config="{width: responsiveWidth, height: responsiveHeight}">
           <v-layer>
             <!-- BASE -->
             <v-rect :config="{width: responsiveWidth, height: responsiveHeight, fill: 'white'}" />
           </v-layer>
-          <v-layer ref="layerRef" :config="frameData">
+          <v-layer v-for="i in Array.from({ length: variation[booth.selectedVariation].copy }).keys()" :key="i" :config="frameData">
             <!-- FRAME -->
-            <v-rect :config="getFrameConfig()" />
+            <v-rect :config="getFrameConfig(i)" />
 
-            <v-rect :config="getHeaderConfig()"/>
+            <v-rect :config="getHeaderConfig(i)"/>
 
-            <v-rect :config="getLogoConfig()"/>
+            <v-rect :config="getLogoConfig(i)"/>
 
             <!-- User Images -->
             <v-rect
-              v-for="(img, index) in loadedImages"
+              v-for="(data, index) in variation[booth.selectedVariation].imagesData"
               :key="index"
-              :config="getImageConfig(img, index)"
+              :config="getImageConfig(index, i, i*variation[booth.selectedVariation].imagesData.length)"
             />
 
           </v-layer>
