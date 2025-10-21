@@ -13,7 +13,7 @@ export default function useDesign() {
     const responsiveWidth = ref(baseWidth.value);
     const responsiveHeight = ref(baseHeight.value);
     const diff = ref(0);
-    const selectedFrameId = booth.selectedTemplate?.id ?? 2;
+    const selectedFrameId = booth.selectedTemplate?.id ?? 0;
     const {frameData, variation, baseData} = frames[selectedFrameId];
     const selectDesign = (designId) => {
         booth.setDesign(designId);

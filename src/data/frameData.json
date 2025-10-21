@@ -2,57 +2,63 @@
     "frames": [
         {
             "imgSrc": "/images/templates/template0.png",
-            "label": "2 shots - 1 copy",
+            "label": "4 shots - 1 copy",
+            "baseData": {
+                "width": 750,
+                "height": 500
+            },
             "frameData": {
-                "width": 251.9685,
-                "height": 755.9055,
+                "width": 375,
+                "height": 500,
                 "strokeSize": 0.5,
-                "imageCount": 2
+                "imageCount": 4
             },
             "variation": [
                 {
                     "imgSrc": "/images/templates/frame0-1.png",
+                    "copy": 2,
                     "logoData": {
-                        "x": 65.98425,
-                        "y": 725,
+                        "x": 127.5,
+                        "y": 5,
                         "width": 120,
                         "height": 30
                     },
                     "headerData": {
-                        "x": 0,
-                        "y": -20,
-                        "width": 251.9685,
+                        "x": 52.5,
+                        "y": 240,
+                        "width": 270,
                         "height": 270
                     },
                     "imagesData": [
                         {
-                            "x": 10.98425,
-                            "y": 230,
-                            "width": 230,
-                            "height": 155
+                            "x": 20,
+                            "y": 40,
+                            "width": 335,
+                            "height": 225
                         }
                     ]
                 },
                 {
                     "imgSrc": "/images/templates/frame0-2.png",
+                    "copy": 2,
                     "logoData": {
-                        "x": 65.98425,
-                        "y": 725,
+                        "x": 127.5,
+                        "y": 465,
                         "width": 120,
                         "height": 30
                     },
                     "headerData": {
-                        "x": 0,
+                        "x": 52.5,
                         "y": -20,
-                        "width": 251.9685,
+                        "width": 270,
                         "height": 270
                     },
                     "imagesData": [
                         {
-                            "x": 10.98425,
-                            "y": 230,
-                            "width": 230,
-                            "height": 155
+                            "x": 20,
+                            "y": 240,
+                            "width": 335,
+                            "height": 225
                         }
                     ]
                 }
