@@ -13,6 +13,10 @@ export const usePhotoboothStore = defineStore('photobooth', {
     selectedDesign: 0,
     uploadedImages: [],
 
+    selectedColorIndex: null,
+    selectedLogoIndex: null,
+    selectedHeaderIndex: null,
+
     // INIT VARIABLES (one time)
     headerImgs: [],
     logoImgs: [],
@@ -59,6 +63,15 @@ export const usePhotoboothStore = defineStore('photobooth', {
     },
     setDesign(frame) {
       this.selectedDesign = frame;
+    },
+    setColor(colorIndex) {
+      this.selectedColorIndex = colorIndex;
+    },
+    setHeader(headerIndex) {
+      this.selectedHeaderIndex = headerIndex;
+    },
+    setLogo(logoIndex) {
+      this.selectedLogoIndex = logoIndex;
     },
     setVariation(variation) {
       this.selectedVariation = variation;

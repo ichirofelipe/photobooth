@@ -5,16 +5,17 @@
   "type": "module",
   "license": "UNLICENSED",
   "scripts": {
-    "dev": "vite --host",
+    "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "android:live": "npx cap run android --live-reload --host=192.168.254.174 --port=5173",
+    "android:live": "npx cap run android --live-reload --host=192.168.100.3 --port=5173",
     "android:build": "npm run build && npx cap copy android"
   },
   "dependencies": {
     "@capacitor/android": "^5.7.8",
     "@capacitor/core": "^5.7.8",
     "@capacitor/filesystem": "^5.2.2",
+    "@capacitor/share": "^6.0.4",
     "@heroicons/vue": "^2.2.0",
     "@tailwindcss/vite": "^4.1.11",
     "konva": "^9.3.22",

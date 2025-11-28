@@ -4,7 +4,7 @@
       Make it a masterpiece
       <!-- Tokyo -->
     </h1>
-    <div id="frame-editor" class="flex gap-x-3 mx-auto">
+    <div v-if="isReady" id="frame-editor" class="flex gap-x-3 mx-auto">
       <div id="frame-viewer" class="">
         <v-stage ref="layerRef" :config="{width: responsiveWidth, height: responsiveHeight}">
           <v-layer>
@@ -13,12 +13,11 @@
           </v-layer>
           <v-layer v-for="i in Array.from({ length: variation[booth.selectedVariation].copy }).keys()" :key="i" :config="frameData">
             <!-- FRAME -->
-            <v-rect :config="getFrameConfig(i)" />
+            <v-rect v-if="getFrameConfig(i)" :config="getFrameConfig(i)" />
 
-            <v-rect :config="getHeaderConfig(i)"/>
+            <v-rect v-if="getHeaderConfig(i)" :config="getHeaderConfig(i)"/>
 
-            <v-rect :config="getLogoConfig(i)"/>
-
+            <v-rect v-if="getLogoConfig(i)" :config="getLogoConfig(i)"/>
             <!-- User Images -->
             <v-rect
               v-for="(data, index) in variation[booth.selectedVariation].imagesData"
@@ -33,31 +32,33 @@
       <div class="flex flex-col gap-3">
         <div id="frames" class="frame-designs">
           <h3 class="font-medium text-lg py-1">COLOR</h3>
-          <ul id="design-list" class="frame-options grid grid grid-cols-2 gap-3 scrollbar">
-            <li v-for="(frameDesign, index) in frameDesigns" :class="{selected: booth.selectedDesign === index}" class="option color col-span-1" @click="selectDesign(index)">
-              <div :style="'background:'+frameDesign.hex"></div>
+          <ul id="design-list" class="frame-options grid grid grid-cols-3 gap-3 scrollbar">
+            <li v-for="(color, index) in mainData.colorData" :class="{selected: booth.selectedDesign === index}" class="option color col-span-1" @click="booth.setDesign(index)">
+              <div :style="'background:'+color.hex"></div>
             </li>
           </ul>
         </div>
         <div v-if="variation.length > 1" id="variation" class="frame-designs">
           <h3 class="font-medium text-lg py-1">VARIATION</h3>
           <ul id="variation-list" class="frame-options grid grid grid-cols-3 gap-3 scrollbar">
-            <li v-for="(option, index) in variation" class="variation-option col-span-1" :class="{selected: booth.selectedVariation === index}" @click=selectVariation(index)>
+            <li v-for="(option, index) in variation" class="variation-option col-span-1" :class="{selected: booth.selectedVariation === index}" @click="booth.setVariation(index)">
               <img :src="option.imgSrc"/>
             </li>
           </ul>
         </div>
       </div>
     </div>
-    <!-- <button @click="handlePrint" class="pb-button p-5">PROCEED TO PRINT</button> -->
-    <button class="pb-button p-5">PROCEED TO PRINT</button>
+    <button @click="handlePrint" class="pb-button p-5">PROCEED TO PRINT</button>
+    <!-- <button class="pb-button p-5">PROCEED TO PRINT</button> -->
   </div>
 </template>
 
 <script setup>
 import useDesign from "../assets/js/design";
+import { onMounted, ref } from "vue";
 import { usePhotoboothStore } from '../assets/js/data';
-import { frameDesigns } from '../data/frameDesigns.json';
+
+const isReady = ref(false);
 const booth = usePhotoboothStore();
 const {
   responsiveWidth,
@@ -66,17 +67,23 @@ const {
   handlePrint,
   getImageConfig,
   frameData,
-  loadedImages,
   layerRef,
-  selectDesign,
-  selectVariation,
   getLogoConfig,
   getHeaderConfig,
-  variation
+  variation,
+  mainData,
+  loadDesignData,
+  loadSetupImages,
 } = useDesign();
+
+onMounted(async () => {
+    await loadDesignData();
+    await loadSetupImages();
+    isReady.value = true;
+});
 </script>
 
-<style>
+<style scoped>
 .konvajs-content {
   margin: 0 auto;
 }

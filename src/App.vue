@@ -1,27 +1,30 @@
 <script setup>
-import { ArrowUturnLeftIcon } from '@heroicons/vue/24/solid';
-import usePhotoboothApp from './assets/js/global';
-import RotatePopup from './components/RotatePopup.vue';
-const { goBack, isPortrait  } = usePhotoboothApp()
+import { ArrowUturnLeftIcon } from "@heroicons/vue/24/solid";
+import usePhotoboothApp from "./assets/js/global";
+import RotatePopup from "./components/RotatePopup.vue";
+const { goBack, isPortrait } = usePhotoboothApp();
 </script>
 
 <template>
-  <RotatePopup v-if="isPortrait"/>
-  <ArrowUturnLeftIcon v-if="isHomePage" @click="goBack" class="primary-color w-15 h-15 absolute cursor-pointer top-0 left-0 p-3"/>
+  <RotatePopup v-if="isPortrait" />
+  <ArrowUturnLeftIcon
+    v-if="isHomePage"
+    @click="goBack"
+    class="primary-color w-15 h-15 absolute cursor-pointer top-0 left-0 p-3"
+  />
   <transition name="slide" mode="out-in">
-      <router-view />
+    <router-view />
   </transition>
 </template>
-
 
 <script>
 export default {
   computed: {
     isHomePage() {
-      return this.$route.fullPath !== '/'
-    }
+      return this.$route.fullPath !== "/";
+    },
   },
-}
+};
 </script>
 
 <style scoped>

@@ -1,0 +1,24 @@
+{
+    "pageConfig": [
+        {
+            "name": "Home",
+            "backLink": null,
+            "resetData": true
+        },
+        {
+            "name": "Template",
+            "backLink": "/",
+            "resetData": true
+        },
+        {
+            "name": "Camera",
+            "backLink": "/templates",
+            "resetData": false
+        },
+        {
+            "name": "Design",
+            "backLink": "/templates",
+            "resetData": false
+        }
+    ]
+}

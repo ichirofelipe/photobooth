@@ -5,7 +5,7 @@
   "loggingBehavior": "none",
   "hideLogs": true,
   "server": {
-    "url": "http://192.168.254.174:5173",
-    "cleartext": true
+    "url": "https://tinklingly-fanatical-brinda.ngrok-free.dev",
+    "cleartext": false
   }
 }

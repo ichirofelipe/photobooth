@@ -16,6 +16,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
 
+import androidx.core.content.ContextCompat;
+
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -98,7 +100,12 @@ public class UvcCameraPlugin extends Plugin {
     @Override
     protected void handleOnStart() {
         super.handleOnStart();
-        try { getContext().registerReceiver(usbReceiver, new IntentFilter(ACTION_USB_PERMISSION)); } catch (Exception ignore) {}
+        try { ContextCompat.registerReceiver(
+    getContext(),
+    usbReceiver,
+    new IntentFilter(ACTION_USB_PERMISSION),
+    ContextCompat.RECEIVER_NOT_EXPORTED
+); } catch (Exception ignore) {}
     }
 
     @Override

@@ -1,26 +1,22 @@
 import { ref, onMounted } from 'vue';
 import { frames } from '../../data/frameData.json';
-import { frameDesigns } from '../../data/frameDesigns.json';
 import { usePhotoboothStore } from './data';
 import { Filesystem, Directory } from '@capacitor/filesystem';
+import { PhotoPrint } from '@/plugins/photo-print';
+import designData from '../../data/designData.json';
 
 // Get configuration for the base
 export default function useDesign() {
+    const mainData = ref();
     const booth = usePhotoboothStore();
-    const baseWidth = ref(500);
+    const baseWidth = ref(480);
     const baseHeight = ref(750);
     const minHeight = 1100;
     const responsiveWidth = ref(baseWidth.value);
     const responsiveHeight = ref(baseHeight.value);
     const diff = ref(0);
-    const selectedFrameId = booth.selectedTemplate?.id ?? 0;
-    const {frameData, variation, baseData} = frames[selectedFrameId];
-    const selectDesign = (designId) => {
-        booth.setDesign(designId);
-    }
-    const selectVariation = (variationId) => {
-        booth.setVariation(variationId);
-    }
+    const selectedFrameId = booth.selectedTemplate?.id ?? 1;
+    const { frameData, variation, baseData } = frames[selectedFrameId];
 
     onMounted(() => {
         updateSizing();
@@ -48,17 +44,19 @@ export default function useDesign() {
         const y = ((responsiveHeight.value - resHeight) / 2) + (frameStrokeWidth / 2);
         const width = resWidth - frameStrokeWidth;
         const height = resHeight - frameStrokeWidth;
+        const color = booth.selectedDesign !== null ? mainData.value.colorData[booth.selectedDesign].hex : '#ffffff';
+
         return {
             x: x,
             y: y,
             width: width,
             height: height,
             // fillPatternImage: frameDesigns[booth.selectedDesign] ?? null, //DEPRECATED
-            fill: frameDesigns[booth.selectedDesign]?.hex ?? null,
+            fill: color,
             fillPatternScale: {x: scaleFactorWidth, y: scaleFactorWidth}, //DEPRECATED
             stroke: 'black',
             strokeWidth: frameStrokeWidth,
-            cornerRadius: 3
+            cornerRadius: 0
         };
     }
 
@@ -124,16 +122,38 @@ export default function useDesign() {
         });
     });
 
+    function darkenHex(hex, factor) {
+        const num = parseInt(hex.slice(1), 16);
+        const r = Math.max(0, ((num >> 16) & 255) * (1 - factor));
+        const g = Math.max(0, ((num >> 8) & 255) * (1 - factor));
+        const b = Math.max(0, (num & 255) * (1 - factor));
+        return (
+            "#" +
+            [r, g, b]
+            .map(x => Math.round(x).toString(16).padStart(2, "0"))
+            .join("")
+        );
+    }
+
     const getHeaderConfig = (multiples = 0) => {
-        const selectedHeader = frameDesigns[booth.selectedDesign].header;
-        if(!booth.headerImgs[selectedHeader]) return;
-        return getImageRectConfig(variation[booth.selectedVariation].headerData, diff.value, booth.headerImgs[selectedHeader], multiples)
+        console.log('getting header config');
+        if(booth.selectedDesign === null) return;
+        const { headerImages } = mainData.value;
+        const { header } = mainData.value.colorData[booth.selectedDesign];
+
+        if(!headerImages[header]) return;
+        console.log('header data', headerImages[header]);
+        return getImageRectConfig(variation[booth.selectedVariation].headerData, diff.value, headerImages[header], multiples)
     }
 
     const getLogoConfig = (multiples = 0) => {
-        const selectedLogo = frameDesigns[booth.selectedDesign].logo;
-        if(!booth.logoImgs[selectedLogo]) return;
-        return getImageRectConfig(variation[booth.selectedVariation].logoData, diff.value, booth.logoImgs[selectedLogo], multiples)
+        console.log('getting logo config');
+        if(booth.selectedDesign === null) return;
+        const { logoImages } = mainData.value;
+        const { logo } = mainData.value.colorData[booth.selectedDesign];
+
+        if(!logoImages[logo]) return;
+        return getImageRectConfig(variation[booth.selectedVariation].logoData, diff.value, logoImages[logo], multiples)
     };
 
     // Get configuration for each image
@@ -142,14 +162,18 @@ export default function useDesign() {
         if(!variation[booth.selectedVariation].imagesData[index] || !loadedImages.value[newIndex]) return;
 
         const imgRectData = getImageRectConfig(variation[booth.selectedVariation].imagesData[index], diff.value, loadedImages.value[newIndex], multiples)
+        const color = booth.selectedDesign !== null ? mainData.value.colorData[booth.selectedDesign].hex : '#ffffff';
 
         return {
             ...imgRectData,
-            cornerRadius: 1
+            cornerRadius: 1,
+            stroke: darkenHex(color, 0.5) ?? null,
+            strokeWidth: 2,
         };
     };
 
     const getImageRectConfig = (imgFrameData, scale, imgData, multiples) => {
+        console.log('imgData:', imgData);
         const resWidth = imgFrameData.width-(imgFrameData.width*scale);
         const resHeight = imgFrameData.height-(imgFrameData.height*scale);
         const resX = imgFrameData.x-(imgFrameData.x*scale);
@@ -178,8 +202,32 @@ export default function useDesign() {
     }
 
     const handlePrint = async () => {
-        const dataURL = layerRef.value.getNode().toDataURL({ pixelRatio: 8 });
+        let dataURL = '';
+        console.log('Frame Data:', frameData);
+        if(frameData.rotate && Capacitor.getPlatform() === 'web')
+        {
+            const node = layerRef.value.getNode();
+            const oldCanvas = node.toCanvas({ pixelRatio: 8 });
+            const rotatedCanvas = document.createElement('canvas');
 
+            // Swap width/height if rotating 90 or 270 degrees
+            rotatedCanvas.width = oldCanvas.height;
+            rotatedCanvas.height = oldCanvas.width;
+
+            const ctx = rotatedCanvas.getContext('2d');
+
+            // Move origin to center, rotate, then draw the image
+            ctx.translate(rotatedCanvas.width / 2, rotatedCanvas.height / 2);
+            ctx.rotate(90 * Math.PI / 180); // 90° clockwise
+            ctx.drawImage(oldCanvas, -oldCanvas.width / 2, -oldCanvas.height / 2);
+
+            dataURL = rotatedCanvas.toDataURL('image/png');
+        }
+        else 
+        {
+            dataURL = layerRef.value.getNode().toDataURL({ pixelRatio: 8 });
+        }
+        
         if (Capacitor.getPlatform() === 'web') {
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
@@ -188,21 +236,24 @@ export default function useDesign() {
                     <title>Print</title>
                     <style>
                     @page {
-                        size: 4in 6in; /* 4R photo size */
+                        size: 6in 4in; /* 4R photo size */
                         margin: 0; /* No margins */
                     }
 
                     body, html {
                         margin: 0;
                         padding: 0;
-                        width: 4in;
-                        height: 6in;
+                        width: 6in;
+                        height: 4in;
+                        background: black; /* helps hide margins if printer can’t do borderless */
                     }
 
                     img {
-                        width: 100%;
-                        height: 100%;
-                        object-fit: cover; /* Crop/fill the space like a photo */
+                        width: 97.5%;
+                        height: 97%;
+                        margin-top: 1.3%;
+                        margin-left: .5%;
+                        object-fit: contain; /* Fit whole image — no cropping */
                         display: block;
                     }
                     </style>
@@ -215,31 +266,139 @@ export default function useDesign() {
             printWindow.document.close();
         }
         else {
-            const base64Data = dataURL.split(',')[1];
+            const base64 = dataURL.replace("data:image/png;base64,", "");
+            const ip = "192.168.100.13"
 
+            // Save internally
             await Filesystem.writeFile({
                 path: `konva_${Date.now()}.png`,
-                data: base64Data,
-                directory: Directory.Documents, // or Directory.External on Android
+                data: base64,
+                directory: Directory.Documents,
             });
 
-            console.log("Saved successfully!");
+            await sendToPrintServer(base64);
+            
+
+            // await PhotoPrint.print({ base64 });
+
+            console.log("Saved & Printed successfully!");
         }
     };
+
+    async function sendToPrintServer(base64) {
+        await fetch("http://192.168.100.3:3000/print", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ base64 })
+        });
+    }
+
+    const loadDesignData = async () => {
+        try {
+            // Try to read the JSON from the app's writable directory
+            const result = await Filesystem.readFile({
+                path: 'designData.json',
+                directory: Directory.Data,
+                encoding: 'utf8'
+            });
+
+            // Parse and return the saved JSON
+            const data = JSON.parse(result.data);
+
+            if(mainData.value === undefined)
+            {
+                mainData.value = data;
+            }
+            else
+            {
+                const { colorData, headerData, logoData } = data;
+                mainData.value.colorData = colorData;
+                mainData.value.headerData = headerData;
+                mainData.value.logoData = logoData;
+            }
+
+        } catch {
+            // If not found, write the default JSON to the writable directory
+            await Filesystem.writeFile({
+                path: 'designData.json',
+                data: JSON.stringify(designData, null, 4), // 4-space indent
+                directory: Directory.Data,
+                encoding: 'utf8'
+            });
+
+            // Return the default JSON
+            console.log('Design data written to filesystem:', designData);
+            mainData.value = JSON.parse(JSON.stringify(designData));
+        }
+    }
+
+    const loadSetupImages = async () => {
+        // LOAD HEADER IMGS
+        await loadSetupImageHelper('header', booth.baseHeaderDir);
+        // LOAD LOGO IMGS
+        await loadSetupImageHelper('logo', booth.baseLogoDir);
+
+        console.log('updated mainData after loading images', mainData.value);
+    }
+
+    const loadSetupImageHelper = async (key, directory) => {
+        const data = mainData.value[`${key}Data`];
+
+        for (let index = 0; index < data.length; index++) {
+            const imgName = data[index];
+            const url = `${directory}${imgName}`;
+
+            let img;
+            try{
+                img = await booth.loadImgData(url);
+            }
+            catch(e){
+                console.error(`Error loading ${key} image:`, e);
+
+                try {
+                    img = await loadImage(`${key}Data/${imgName}`);
+                    console.log('loaded image', img);
+                }
+                catch(err){
+                    console.error(`Error loading ${key} image from filesystem:`, err);
+                    img = null;
+                }
+            }
+            mainData.value[`${key}Images`][index] = img;
+        }
+    }
+
+    const loadImage = async (filePath) => {
+        const result = await Filesystem.readFile({
+            path: filePath,
+            directory: Directory.Data
+        });
+        // gets MIME type (png, jpg, svg, etc)
+        const ext = filePath.split('.').pop().toLowerCase();
+        let mime = 'image/png';
+        if (ext === 'jpg' || ext === 'jpeg') mime = 'image/jpeg';
+        if (ext === 'svg') mime = 'image/svg+xml';
+
+        // build usable image url
+        const imgSrc = `data:${mime};base64,${result.data}`;
+
+        // return actual Image() using your existing function
+        return booth.loadImgData(imgSrc);
+    }
 
     return {
         responsiveWidth,
         responsiveHeight,
         getFrameConfig,
         frameData,
-        loadedImages,
         getImageConfig,
         handlePrint,
         layerRef,
-        selectDesign,
-        selectVariation,
         getLogoConfig,
         getHeaderConfig,
-        variation
+        variation,
+        mainData,
+        loadDesignData,
+        loadSetupImages,
     }
 }
