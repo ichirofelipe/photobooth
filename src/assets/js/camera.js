@@ -20,13 +20,18 @@ export default function useCamera() {
     let imageCount = 0;
     let shutterFlag = ref(false);
     let isCameraRunning = false;
+    let hasCountDownStarted = false;
     let frameListener;
 
+    console.log("A NEW LOG!!")
+
     const startCamera = async () => {
+        console.log('Starting camera...');
         if (isCameraRunning) return;
 
         if (Capacitor.getPlatform() === 'web') {
             try {
+                console.log('Accessing web camera...');
                 stream = await navigator.mediaDevices.getUserMedia({ video: true });
                 if (videoRef.value) {
                     videoRef.value.srcObject = stream;
@@ -38,37 +43,39 @@ export default function useCamera() {
             }
         } else {
             const { devices } = await UvcCameraPlugin.listUvcDevices();
-            const d = devices[0];
+            const d = JSON.parse(devices)[0];
+            console.log(d.vendorId)
             if (!d) {
                 console.warn('No UVC devices found');
                 return;
             }
-            frameListener = await UvcCameraPlugin.addListener('frame', (payload) => {
-                if(payload.file)
+            frameListener = await UvcCameraPlugin.addListener('frame', (frame) => {
+                console.log("Base64 frame received", frame);
+                const img = new Image();
+                UVCSrcRef.value = `data:image/jpeg;base64,${frame.data}`;
+
+                if(!hasCountDownStarted)
                 {
-                    UVCSrcRef.value = Capacitor.convertFileSrc(payload.file) + "?" + Date.now();
-                }
-                else
-                {
-                    UVCSrcRef.value = 'data:image/jpeg;base64,' + payload.data;
+                    console.log("Starting countdown after loader delay");
+                    hasCountDownStarted = true;
+                    const timeOut = setTimeout( async () => {
+                        startCountdown();
+                        clearTimeout(timeOut);
+                    }, loaderDelay);
                 }
             });
 
             await UvcCameraPlugin.startPreview({
-                vendorId: d.vendorId,
-                productId: d.productId,
-                mode: "file",
-                width: 1280,
-                height: 720,
-                throttleMs: 100,
-                jpegQuality: 100,
-                minEmitIntervalMs: 100, // ~14 fps over the bridge
+                vendorId: 13407,
+                productId: 8457,
+                width: 640,
+                height: 480,
+                throttleMs: 0,      // 0 = no throttle, 30–100 = lower FPS
+                jpegQuality: 70
             });
 
-            const timeOut = setTimeout( async () => {
-                startCountdown();
-                clearTimeout(timeOut);
-            }, loaderDelay);
+            const { granted } = await UvcCameraPlugin.hasUsbPermission();
+            console.log("hasUsbPermission:", granted);
         }
     };
 
@@ -84,6 +91,7 @@ export default function useCamera() {
         }
 
         isCameraRunning = false;
+        hasCountDownStarted = false;
     };
 
 

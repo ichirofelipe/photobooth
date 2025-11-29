@@ -4,8 +4,11 @@ import App from './App.vue'
 import router from './router';
 import VueKonva from 'vue-konva';
 import './style.css'
+import { registerCapacitorListeners } from './assets/js/capacitor-listeners';
 
 const app = createApp(App);
+
+registerCapacitorListeners();
 
 app.use(router);
 app.use(VueKonva);

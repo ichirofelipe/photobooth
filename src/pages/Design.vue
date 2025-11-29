@@ -73,7 +73,7 @@ const {
   variation,
   mainData,
   loadDesignData,
-  loadSetupImages,
+  loadSetupImages
 } = useDesign();
 
 onMounted(async () => {

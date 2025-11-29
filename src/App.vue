@@ -22,9 +22,35 @@ export default {
   computed: {
     isHomePage() {
       return this.$route.fullPath !== "/";
-    },
+    }
   },
+
+  mounted() {
+    console.log("Polling started!");
+
+    this.pollInterval = setInterval(this.checkSetupFlag, 3000);
+  },
+
+  beforeUnmount() {
+    clearInterval(this.pollInterval);
+  },
+
+  methods: {
+    async checkSetupFlag() {
+      try {
+        const res = await fetch("http://192.168.100.3:3000/setup-status");
+        const json = await res.json();
+
+        if (json.setup) {
+          this.$router.push("/setup");
+        }
+      } catch (err) {
+        console.log("Polling error", err);
+      }
+    }
+  }
 };
+
 </script>
 
 <style scoped>
