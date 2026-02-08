@@ -1,11 +1,14 @@
 import { defineStore } from 'pinia';
-import { headerData, logoData } from '../../data/designData.json';
+import designData from '../../data/designData.json';
+import rawNetworkData from '../../data/networkData.json';
+import { Directory, Encoding, Filesystem } from '@capacitor/filesystem';
 
 export const usePhotoboothStore = defineStore('photobooth', {
   state: () => ({
     initialized: false,
     baseHeaderDir: "/images/designs/",
-    baseLogoDir: "/images/logo/",
+    baseFooterDir: "/images/footer/",
+    baseHomeLogoDir: "/images/homeLogo/",
     
     // CHANGING VARIABLES
     selectedTemplate: null,
@@ -14,37 +17,31 @@ export const usePhotoboothStore = defineStore('photobooth', {
     uploadedImages: [],
 
     selectedColorIndex: null,
-    selectedLogoIndex: null,
+    selectedFooterIndex: null,
     selectedHeaderIndex: null,
 
     // INIT VARIABLES (one time)
-    headerImgs: [],
-    logoImgs: [],
+    uploadData: {
+      headerData: [],
+      footerData: [],
+      homeLogoData: null
+    },
+    headerData: [],
+    footerData: [],
+    homeLogoData: null,
+    mainData: [],
+    networkData: [],
   }),
 
   actions: {
     async init() {
       if (!this.initialized) {
-
-        // LOAD HEADER IMGS
-        await headerData.forEach( async (imgName, index) => {
-          const headerUrl = `${this.baseHeaderDir}${imgName}`;
-          await loadImgFunc(headerUrl).then(img => {
-            this.headerImgs[index] = img;
-          })
-        })
-
-        // LOAD LOGO IMGS
-        await logoData.forEach( async (imgName, index) => {
-          const logoUrl = `${this.baseLogoDir}${imgName}`;
-          await loadImgFunc(logoUrl).then(img => {
-            this.logoImgs[index] = img;
-          })
-        })
+        await this.reloadMainData();
+        console.log('Photobooth store initialized', this.mainData);
+        this.initialized = true;
       }
     },
     setTemplate(templateId, imgCount) {
-      console.log(templateId, imgCount)
       this.selectedTemplate = {
         id: templateId,
         imgCount: imgCount
@@ -70,8 +67,8 @@ export const usePhotoboothStore = defineStore('photobooth', {
     setHeader(headerIndex) {
       this.selectedHeaderIndex = headerIndex;
     },
-    setLogo(logoIndex) {
-      this.selectedLogoIndex = logoIndex;
+    setFooter(footerIndex) {
+      this.selectedFooterIndex = footerIndex;
     },
     setVariation(variation) {
       this.selectedVariation = variation;
@@ -89,8 +86,207 @@ export const usePhotoboothStore = defineStore('photobooth', {
       return loadImgFunc(imageUrl).then(img => {
         this.designs.push(img);
       });
+    },
+    async reloadMainData() {
+
+      await this.dumpDir();
+
+      await this.loadDesignData();
+      await this.loadNetworkData();
+      // LOAD HEADER IMGS
+      await this.loadImageHelper('header', this.baseHeaderDir);
+      // LOAD FOOTER IMGS
+      await this.loadImageHelper('footer', this.baseFooterDir);
+      // LOAD HOME LOGO IMGS
+      await this.loadImageHelper('homeLogo', this.baseHomeLogoDir);
+    },
+    async loadDesignData() {
+      try {
+            // Try to read the JSON from the app's writable directory
+            const result = await Filesystem.readFile({
+                path: 'designData.json',
+                directory: Directory.Data,
+                encoding: Encoding.UTF8,
+            });
+
+            // Parse and return the saved JSON
+            const data = JSON.parse(result.data);
+            console.log('Loaded design data from filesystem:', data);
+            // if(data.length > 0)
+            // {
+            //   console.log('Initial load of design data');
+            //   this.mainData = data;
+            // }
+            // else
+            // {
+            //   throw new Error("Data not found")
+            // }
+            if(this.mainData.length === 0)
+            {
+                this.mainData = data;
+            }
+            else
+            {
+                const { colorData, headerData, footerData, homeLogoData } = data;
+                this.mainData.colorData = colorData;
+                this.mainData.headerData = headerData;
+                this.mainData.footerData = footerData;
+                this.mainData.homeLogoData = homeLogoData;
+            }
+
+            console.log('Design data loaded from filesystem:', this.mainData);
+
+        } catch (e){
+            // If not found, write the default JSON to the writable directory
+            await Filesystem.writeFile({
+                path: 'designData.json',
+                data: JSON.stringify(designData, null, 4), // 4-space indent
+                directory: Directory.Data,
+                encoding: Encoding.UTF8,
+            });
+
+            // Return the default JSON
+            this.mainData = JSON.parse(JSON.stringify(designData));
+        }
+    },
+    async loadImageHelper(key, directory) {
+        const data = this.mainData[`${key}Data`];
+
+        console.log(Array.isArray(data), 'loading setup images for', key, data);
+        if(Array.isArray(data))
+        {
+            for (let index = 0; index < data.length; index++) {
+                const imgName = data[index];
+                const url = `${directory}${imgName}`;
+
+                let img;
+                try{
+                    img = await this.loadImgData(url);
+                }
+                catch(e){
+                    console.log(`Cannot load ${key} image from base files trying to load in data directory:`, e);
+
+                    try {
+                        img = await loadImage(`${key}Data/${imgName}`);
+                        console.log(`Loaded ${key} image from data directory:`, imgName);
+                    }
+                    catch(err){
+                        console.error(`Cannot load ${key} image:`, err);
+                        img = null;
+                    }
+                }
+                console.log('Loaded', );
+                if(this.mainData[`${key}Images`]===undefined)this.mainData[`${key}Images`] = [];
+                this.mainData[`${key}Images`][index] = img;
+            }
+        }
+        else
+        {
+            const url = `${directory}${data}`;
+            console.log('Loading single image for', key, url);
+            let img;
+            try{
+                img = await this.loadImgData(url);
+            }
+            catch(e){
+                console.log(`Cannot load ${key} image from base files trying to load in data directory:`, e);
+
+                try {
+                    img = await loadImage(`${key}Data/${data}`);
+                    console.log(`Loaded ${key} image from data directory:`, data);
+                }
+                catch(err){
+                    console.error(`Cannot load ${key} image:`, err);
+                    img = null;
+                }
+            }
+            this.mainData[`${key}Image`] = img;
+        }
+    },
+    async loadNetworkData () {
+        try {
+            // Try to read the JSON from the app's writable directory
+            const result = await Filesystem.readFile({
+                path: 'networkData.json',
+                directory: Directory.Data,
+                encoding: Encoding.UTF8,
+            });
+
+            // Parse and return the saved JSON
+            const data = JSON.parse(result.data);
+            this.networkData = data;
+            console.log('Network data loaded from filesystem:', this.networkData);
+
+        } catch {
+            // If not found, write the default JSON to the writable directory
+            await Filesystem.writeFile({
+                path: 'networkData.json',
+                data: JSON.stringify(rawNetworkData, null, 4), // 4-space indent
+                directory: Directory.Data,
+                encoding: Encoding.UTF8,
+            });
+
+            this.networkData = JSON.parse(JSON.stringify(rawNetworkData));
+            // Return the default JSON
+            console.log('Network data written to filesystem:', this.networkData);
+        }
+    },
+    async saveJson (fileName, data) {
+        await Filesystem.writeFile({
+            path: fileName,
+            data: data,
+            directory: Directory.Data, // or Directory.Data
+            encoding: 'utf8',
+        });
+    },
+    async deleteDesignJson () {
+        try {
+            await Filesystem.deleteFile({
+                path: 'designData.json',
+                directory: Directory.Data
+            });
+        } catch (err) {
+            console.error('Delete failed:', err);
+        }
+    },
+
+    async dumpDir(path = '') {
+      const { files } = await Filesystem.readdir({
+        path,
+        directory: Directory.Data,
+      });
+
+      for (const file of files) {
+        const fullPath = path ? `${path}/${file}` : file;
+
+        console.log(fullPath);
+        // try {
+        //   const stat = await Filesystem.stat({
+        //     path: fullPath,
+        //     directory: Directory.Data,
+        //   });
+
+        //   if (stat.type === 'directory') {
+        //     console.log(`📁 ${fullPath}/`);
+        //     await this.dumpDir(fullPath); // ✅ MUST use this
+        //   } 
+        //   else if (fullPath.endsWith('.json')) {
+        //     const result = await Filesystem.readFile({
+        //       path: fullPath,
+        //       directory: Directory.Data,
+        //       encoding: Encoding.UTF8,
+        //     });
+        //     console.log(`📄 ${fullPath}:`, JSON.parse(result.data));
+        //   } 
+        //   else {
+        //     console.log(`🖼️ ${fullPath} (binary skipped)`);
+        //   }
+        // } catch (e) {
+        //   console.warn(`⚠️ Failed: ${fullPath}`, e);
+        // }
+      }
     }
-  },
+  }
 });
 
 const loadImgFunc = (url) => {
@@ -102,4 +298,22 @@ const loadImgFunc = (url) => {
     img.onerror = reject;
     img.src = url;
   })
+}
+
+const loadImage = async (filePath) => {
+    const result = await Filesystem.readFile({
+        path: filePath,
+        directory: Directory.Data
+    });
+    // gets MIME type (png, jpg, svg, etc)
+    const ext = filePath.split('.').pop().toLowerCase();
+    let mime = 'image/png';
+    if (ext === 'jpg' || ext === 'jpeg') mime = 'image/jpeg';
+    if (ext === 'svg') mime = 'image/svg+xml';
+
+    // build usable image url
+    const imgSrc = `data:${mime};base64,${result.data}`;
+
+    // return actual Image() using your existing function
+    return loadImgFunc(imgSrc);
 }

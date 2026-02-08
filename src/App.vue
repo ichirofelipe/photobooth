@@ -8,7 +8,7 @@ const { goBack, isPortrait } = usePhotoboothApp();
 <template>
   <RotatePopup v-if="isPortrait" />
   <ArrowUturnLeftIcon
-    v-if="isHomePage"
+    v-if="hasBackArrow"
     @click="goBack"
     class="primary-color w-15 h-15 absolute cursor-pointer top-0 left-0 p-3"
   />
@@ -18,17 +18,21 @@ const { goBack, isPortrait } = usePhotoboothApp();
 </template>
 
 <script>
+import { usePhotoboothStore } from './assets/js/data';
+let booth;
 export default {
   computed: {
-    isHomePage() {
-      return this.$route.fullPath !== "/";
+    hasBackArrow() {
+      return this.$route.fullPath !== "/"
+      && this.$route.fullPath !== "/setup";
     }
   },
 
-  mounted() {
-    console.log("Polling started!");
-
-    this.pollInterval = setInterval(this.checkSetupFlag, 3000);
+  async mounted() {
+    booth = usePhotoboothStore();
+    await booth.loadNetworkData();
+    console.log("Polling started!", booth.networkData);
+    // this.pollInterval = setInterval(this.checkSetupFlag, 3000);
   },
 
   beforeUnmount() {
@@ -38,7 +42,11 @@ export default {
   methods: {
     async checkSetupFlag() {
       try {
-        const res = await fetch("http://192.168.100.3:3000/setup-status");
+        if (!booth.networkData.ipAddress) {
+          this.$router.push("/setup");
+        }
+        console.log("Polling setup status...", booth.networkData.ipAddress);
+        const res = await fetch(`http://${booth.networkData.ipAddress}:3000/setup-status`);
         const json = await res.json();
 
         if (json.setup) {

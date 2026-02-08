@@ -19,3 +19,12 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+-keep class com.jiangdg.** { *; }
+-keepclassmembers class com.jiangdg.** { *; }
+
+-keep class com.serenegiant.** { *; }
+-keepclassmembers class com.serenegiant.** { *; }
+
+-keep class com.getcapacitor.** { *; }
+-keepclassmembers class com.getcapacitor.** { *; }

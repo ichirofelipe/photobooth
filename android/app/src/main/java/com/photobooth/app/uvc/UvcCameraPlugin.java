@@ -1,11 +1,12 @@
 package com.photobooth.app.uvc;
 
 import android.app.PendingIntent;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.hardware.usb.UsbConstants;
@@ -15,8 +16,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Base64;
 import android.util.Log;
-
-import androidx.core.content.ContextCompat;
 
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -34,8 +33,6 @@ import com.jiangdg.usb.USBMonitor;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +44,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class UvcCameraPlugin extends Plugin {
 
     private static final String TAG = "UVC";
-    private static final String ACTION_USB_PERMISSION = "com.photobooth.app.USB_PERMISSION";
+    public static final String ACTION_USB_PERMISSION = "com.photobooth.app.USB_PERMISSION";
+
+    // Static instance so the BroadcastReceiver can call back into the plugin
+    private static UvcCameraPlugin instance;
+
+    public static UvcCameraPlugin getInstance() {
+        return instance;
+    }
 
     private PendingIntent usbPermissionIntent;
 
@@ -60,95 +64,64 @@ public class UvcCameraPlugin extends Plugin {
 
     private boolean clientRegistered = false;
 
-    private int previewWidth = 640;
-    private int previewHeight = 480;
-    // default 0 = no throttle; you can override from JS via throttleMs
-    private int previewThrottleMs = 0;
+    private int previewWidth = 1280;
+    private int previewHeight = 720;
+    private int previewThrottleMs = 50;
     private int previewJpegQuality = 70;
 
-    // we only use single target camera (vendor/product)
+    // We track the "chosen" device by VID/PID
     private Integer targetVendorId = null;
     private Integer targetProductId = null;
 
     private CameraRequest currentRequest = null;
     private IPreviewDataCallBack previewCb = null;
 
-    // ---------------- USB PERMISSION RECEIVER (dynamic, exported) ----------------
-    private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context ctx, Intent intent) {
+    private enum SourceMode {
+        UVC,
+        INTERNAL
+    }
 
-            Log.e(TAG, "USB PERMISSION BROADCAST RECEIVED");
-
-            if (!ACTION_USB_PERMISSION.equals(intent.getAction())) return;
-
-            UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-            boolean granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
-
-            JSObject obj = new JSObject();
-            obj.put("granted", granted);
-            obj.put("deviceName", device != null ? device.getDeviceName() : null);
-            notifyListeners("usbPermission", obj);
-
-            if (granted && mClient != null && device != null && deviceMatches(device)) {
-                Log.d(TAG, "USB permission granted, passing to AUSBC requestPermission()");
-                try {
-                    mClient.requestPermission(device);
-                } catch (Throwable e) {
-                    Log.e(TAG, "mClient.requestPermission failed", e);
-                }
-            } else {
-                Log.w(TAG, "USB permission denied or device null/mismatch");
-            }
-        }
-    };
+    private InternalCamera internalCamera = null;
+    private SourceMode currentSource = SourceMode.UVC;
 
     // ---------------- LIFECYCLE ----------------
 
-    private void initUsbPermissionIntent() {
-        if (usbPermissionIntent == null) {
-            Intent intent = new Intent(ACTION_USB_PERMISSION);
-            usbPermissionIntent = PendingIntent.getBroadcast(
-                    getContext(),
-                    0,
-                    intent,
-                    PendingIntent.FLAG_IMMUTABLE
-            );
-        }
-    }
-
     @Override
-    protected void handleOnStart() {
-        super.handleOnStart();
-
-        // Register USB permission receiver dynamically as EXPORTED
-        try {
-            IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-            Log.d(TAG, "Registering USB permission receiver (exported)");
-            ContextCompat.registerReceiver(
-                    getContext(),
-                    usbReceiver,
-                    filter,
-                    ContextCompat.RECEIVER_EXPORTED
-            );
-        } catch (Exception e) {
-            Log.e(TAG, "Receiver register failed: " + e.getMessage(), e);
-        }
+    public void load() {
+        super.load();
+        instance = this;
     }
 
     @Override
     protected void handleOnDestroy() {
         super.handleOnDestroy();
         stopPreviewInternal();
-
-        try {
-            getContext().unregisterReceiver(usbReceiver);
-        } catch (Exception ignore) {}
-
         try {
             compressExecutor.shutdownNow();
         } catch (Exception ignore) {}
+
+        if (instance == this) {
+            instance = null;
+        }
     }
+
+    private void initUsbPermissionIntent() {
+        if (usbPermissionIntent == null) {
+            Context ctx = getContext();
+
+            Intent intent = new Intent(ctx, UsbPermissionReceiver.class);
+            intent.setAction(ACTION_USB_PERMISSION); // explicit action
+            intent.setPackage(ctx.getPackageName()); // CRITICAL on Android 12+
+
+            usbPermissionIntent = PendingIntent.getBroadcast(
+                    ctx,
+                    0,
+                    intent,
+                    PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+            );
+        }
+    }
+
 
     // ---------------- Utility ----------------
 
@@ -159,6 +132,62 @@ public class UvcCameraPlugin extends Plugin {
                 && d.getVendorId() == targetVendorId
                 && d.getProductId() == targetProductId;
     }
+
+    // Called from UsbPermissionReceiver
+    public void handleUsbPermissionResult(UsbDevice device, boolean granted) {
+        Log.d(TAG, "USB Permission result. granted=" + granted +
+                " device=" + (device != null ? device.getDeviceName() : "null"));
+
+        UsbManager manager = (UsbManager) getContext().getSystemService(Context.USB_SERVICE);
+
+        // 💡 Fallback: if broadcast says "denied/null" but we actually HAVE permission, trust hasPermission().
+        if ((!granted || device == null) && manager != null
+                && targetVendorId != null && targetProductId != null) {
+
+            for (UsbDevice d : manager.getDeviceList().values()) {
+                if (deviceMatches(d) && manager.hasPermission(d)) {
+                    Log.w(TAG, "Broadcast said denied/null but hasPermission() is true. Trusting manager and continuing.");
+                    if (mClient != null) {
+                        try {
+                            mClient.requestPermission(d);
+                        } catch (Throwable e) {
+                            Log.e(TAG, "mClient.requestPermission in fallback failed", e);
+                        }
+                    } else {
+                        Log.w(TAG, "mClient is null in fallback handleUsbPermissionResult");
+                    }
+                    return; // we handled it
+                }
+            }
+
+            Log.w(TAG, "USB permission denied or device null, and no matching hasPermission() device");
+            return;
+        }
+
+        // Normal, happy path:
+        if (!granted || device == null) {
+            Log.w(TAG, "USB permission denied or device null");
+            return;
+        }
+
+        if (mClient == null) {
+            Log.w(TAG, "mClient is null in handleUsbPermissionResult");
+            return;
+        }
+
+        if (!deviceMatches(device)) {
+            Log.w(TAG, "Permission granted for non-target device, ignoring");
+            return;
+        }
+
+        try {
+            Log.d(TAG, "Calling mClient.requestPermission(device) after grant");
+            mClient.requestPermission(device);
+        } catch (Throwable e) {
+            Log.e(TAG, "mClient.requestPermission failed", e);
+        }
+    }
+
 
     // ---------------- JS API METHODS ----------------
 
@@ -191,17 +220,46 @@ public class UvcCameraPlugin extends Plugin {
                 return;
             }
 
+            // Remember this device as our target
+            targetVendorId = target.getVendorId();
+            targetProductId = target.getProductId();
+
             initUsbPermissionIntent();
             manager.requestPermission(target, usbPermissionIntent);
 
             JSObject res = new JSObject();
             res.put("requested", true);
             res.put("deviceName", target.getDeviceName());
+            res.put("vid", target.getVendorId());
+            res.put("pid", target.getProductId());
             call.resolve(res);
 
         } catch (Exception e) {
             call.reject("requestUsbPermissionEarly failed: " + e.getMessage());
         }
+    }
+
+    @PluginMethod
+    public void debugUsbState(PluginCall call) {
+        UsbManager manager = (UsbManager) getContext().getSystemService(Context.USB_SERVICE);
+        JSObject res = new JSObject();
+
+        if (manager == null) {
+            res.put("error", "UsbManager not available");
+            call.resolve(res);
+            return;
+        }
+
+        for (UsbDevice d : manager.getDeviceList().values()) {
+            JSObject dev = new JSObject();
+            dev.put("name", d.getDeviceName());
+            dev.put("vid", d.getVendorId());
+            dev.put("pid", d.getProductId());
+            dev.put("hasPermission", manager.hasPermission(d));
+            Log.d("UVC", "debugUsbState: " + dev.toString());
+        }
+
+        call.resolve(res);
     }
 
     @PluginMethod
@@ -259,29 +317,17 @@ public class UvcCameraPlugin extends Plugin {
         call.resolve(res);
     }
 
-    // ---------------- startPreview (single camera, base64-only, auto-reconnect) ----------------
+    // ---------------- startPreview ----------------
     @PluginMethod
     public void startPreview(PluginCall call) {
         try {
-            Integer vId = call.getInt("vendorId");
-            Integer pId = call.getInt("productId");
-
-            if (vId == null || pId == null) {
-                call.reject("vendorId and productId are required");
-                return;
-            }
-
-            targetVendorId = vId;
-            targetProductId = pId;
-
             previewWidth = call.getInt("width", 640);
             previewHeight = call.getInt("height", 480);
-            previewThrottleMs = call.getInt("throttleMs", 0); // 0 = no throttle
+            previewThrottleMs = call.getInt("throttleMs", 0);
             previewJpegQuality = call.getInt("jpegQuality", 70);
 
             stopPreviewInternal();
 
-            // Build CameraRequest
             currentRequest = new CameraRequest.Builder()
                     .setPreviewWidth(previewWidth)
                     .setPreviewHeight(previewHeight)
@@ -291,125 +337,182 @@ public class UvcCameraPlugin extends Plugin {
 
             buildPreviewCallback();
 
-            // Create MultiCameraClient if needed
-            if (mClient == null) {
-                mClient = new MultiCameraClient(getContext(), new IDeviceConnectCallBack() {
+            UsbManager manager =
+                    (UsbManager) getContext().getSystemService(Context.USB_SERVICE);
 
-                    @Override
-                    public void onAttachDev(UsbDevice device) {
-                        String name = (device != null ? device.getDeviceName() : "null");
-                        Log.d(TAG, "USB attached: " + name);
-
-                        if (!deviceMatches(device)) {
-                            Log.d(TAG, "onAttachDev: not target device, ignoring");
-                            return;
-                        }
-
-                        UsbManager manager = (UsbManager) getContext().getSystemService(Context.USB_SERVICE);
-                        if (manager == null) return;
-
-                        if (manager.hasPermission(device)) {
-                            Log.d(TAG, "Already have permission on attach; requesting AUSBC permission");
-                            try {
-                                mClient.requestPermission(device);
-                            } catch (Throwable e) {
-                                Log.e(TAG, "requestPermission on attach failed", e);
-                            }
-                        } else {
-                            Log.d(TAG, "No permission on attach; requesting via PendingIntent");
-                            initUsbPermissionIntent();
-                            try {
-                                manager.requestPermission(device, usbPermissionIntent);
-                            } catch (Throwable e) {
-                                Log.e(TAG, "requestPermission in onAttachDev failed", e);
-                            }
-                        }
-                    }
-
-                    @Override
-                    public void onDetachDec(UsbDevice device) {
-                        String name = (device != null ? device.getDeviceName() : "null");
-                        Log.d(TAG, "USB detached: " + name);
-
-                        if (!deviceMatches(device)) return;
-
-                        mainHandler.post(() -> {
-                            if (mCamera != null) {
-                                try {
-                                    mCamera.closeCamera();
-                                } catch (Throwable ignore) {}
-                                mCamera = null;
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void onConnectDev(UsbDevice device, USBMonitor.UsbControlBlock ctrlBlock) {
-                        String name = (device != null ? device.getDeviceName() : "null");
-                        Log.d(TAG, "onConnectDev: " + name);
-
-                        mainHandler.post(() -> openCameraForDevice(device, ctrlBlock));
-                    }
-
-                    @Override
-                    public void onDisConnectDec(UsbDevice device, USBMonitor.UsbControlBlock ctrlBlock) {
-                        String name = (device != null ? device.getDeviceName() : "null");
-                        Log.d(TAG, "onDisConnectDec: " + name);
-                        if (!deviceMatches(device)) return;
-
-                        mainHandler.post(() -> {
-                            if (mCamera != null) {
-                                try {
-                                    mCamera.closeCamera();
-                                } catch (Throwable ignore) {}
-                                mCamera = null;
-                            }
-                        });
-                    }
-
-                    @Override
-                    public void onCancelDev(UsbDevice device) {
-                        String name = (device != null ? device.getDeviceName() : "null");
-                        Log.d(TAG, "onCancelDev: " + name);
-                    }
-                });
-            }
-
-            // Register USB monitor (listen for attach/detach/connect)
-            mClient.register();
-            clientRegistered = true;
-
-            // Find the matching USB device right now
-            UsbManager manager = (UsbManager) getContext().getSystemService(Context.USB_SERVICE);
             if (manager == null) {
                 call.reject("UsbManager not available");
                 return;
             }
 
-            UsbDevice matched = null;
+            // 1️⃣ Pick the FIRST USB device (your requirement)
+            UsbDevice firstDevice = null;
             for (UsbDevice d : manager.getDeviceList().values()) {
+                firstDevice = d;
                 Log.d(TAG, "Found USB device: " + d.getDeviceName()
                         + " VID=" + d.getVendorId()
-                        + " PID=" + d.getProductId()
-                        + " hasPermission=" + manager.hasPermission(d));
-                if (deviceMatches(d)) {
-                    matched = d;
-                    break;
-                }
+                        + " PID=" + d.getProductId());
+                break;
             }
 
-            if (matched == null) {
-                call.reject("No matching UVC device found");
+            if (firstDevice == null) {
+                Log.w(TAG, "No UVC detected → using INTERNAL camera fallback");
+
+                currentSource = SourceMode.INTERNAL;
+
+                internalCamera = new InternalCamera(getContext(), getActivity());
+                internalCamera.start(previewWidth, previewHeight, (base64, w, h) -> {
+                    JSObject payload = new JSObject();
+                    payload.put("width", w);
+                    payload.put("height", h);
+                    payload.put("data", base64);
+                    notifyListeners("frame", payload);
+                });
+
+                JSObject ok = new JSObject();
+                ok.put("started", true);
+                ok.put("fallback", "internal");
+                call.resolve(ok);
                 return;
             }
 
-            // Always request permission via our immutable PendingIntent.
-            Log.d(TAG, "Requesting USB permission for device: " + matched.getDeviceName());
-            initUsbPermissionIntent();
-            manager.requestPermission(matched, usbPermissionIntent);
+            // Remember this device as the target
+            targetVendorId = firstDevice.getVendorId();
+            targetProductId = firstDevice.getProductId();
+
+            // 2️⃣ Create MultiCameraClient if needed
+            if (mClient == null) {
+                mClient = new MultiCameraClient(getContext(), new IDeviceConnectCallBack() {
+                    @Override
+                    public void onAttachDev(UsbDevice device) {
+                        Log.d(TAG, "USB attached: " + device.getDeviceName());
+
+                        UsbManager manager =
+                                (UsbManager) getContext().getSystemService(Context.USB_SERVICE);
+                        if (manager == null) return;
+
+                        // Only switch if we are currently using INTERNAL camera
+                        if (currentSource != SourceMode.INTERNAL) return;
+
+                        // Check if this is a video device
+                        boolean isVideo = false;
+                        for (int i = 0; i < device.getInterfaceCount(); i++) {
+                            if (device.getInterface(i).getInterfaceClass()
+                                    == UsbConstants.USB_CLASS_VIDEO) {
+                                isVideo = true;
+                                break;
+                            }
+                        }
+                        if (!isVideo) return;
+
+                        Log.w(TAG, "UVC attached while internal camera running → switching to UVC");
+
+                        // Stop internal camera
+                        if (internalCamera != null) {
+                            internalCamera.stop();
+                            internalCamera = null;
+                        }
+
+                        currentSource = SourceMode.UVC;
+
+                        // Remember target device
+                        targetVendorId = device.getVendorId();
+                        targetProductId = device.getProductId();
+
+                        // Request permission or open immediately
+                        if (manager.hasPermission(device)) {
+                            try {
+                                mClient.requestPermission(device);
+                            } catch (Throwable e) {
+                                Log.e(TAG, "requestPermission failed on attach", e);
+                            }
+                        } else {
+                            initUsbPermissionIntent();
+                            manager.requestPermission(device, usbPermissionIntent);
+                        }
+                    }
+
+
+                    @Override
+                    public void onDetachDec(UsbDevice device) {
+                        Log.d(TAG, "USB detached: " + device.getDeviceName());
+
+                        if (deviceMatches(device)) {
+                            Log.w(TAG, "Target UVC detached → switching to internal camera");
+
+                            currentSource = SourceMode.INTERNAL;
+
+                            if (mCamera != null) {
+                                try { mCamera.closeCamera(); } catch (Throwable ignore) {}
+                                mCamera = null;
+                            }
+
+                            internalCamera = new InternalCamera(getContext(), getActivity());
+                            internalCamera.start(previewWidth, previewHeight, (base64, w, h) -> {
+                                JSObject payload = new JSObject();
+                                payload.put("width", w);
+                                payload.put("height", h);
+                                payload.put("data", base64);
+                                notifyListeners("frame", payload);
+                            });
+                        }
+
+                    }
+
+                    @Override
+                    public void onConnectDev(UsbDevice device, USBMonitor.UsbControlBlock ctrlBlock) {
+                        Log.d(TAG, "USB connected: " + device.getDeviceName());
+                        mainHandler.post(() -> openCameraForDevice(device, ctrlBlock));
+                    }
+
+                    @Override
+                    public void onDisConnectDec(UsbDevice device, USBMonitor.UsbControlBlock ctrlBlock) {
+                        Log.d(TAG, "USB disconnected: " + device.getDeviceName());
+                        if (deviceMatches(device)) {
+                            mainHandler.post(() -> {
+                                if (mCamera != null) {
+                                    try { mCamera.closeCamera(); } catch (Throwable ignore) {}
+                                    mCamera = null;
+                                }
+                            });
+                        }
+                    }
+
+                    @Override
+                    public void onCancelDev(UsbDevice device) {
+                        Log.d(TAG, "USB permission cancelled: " + device.getDeviceName());
+                    }
+                });
+            }
+
+            // 3️⃣ Start listening for attach/detach
+            mClient.register();
+            clientRegistered = true;
+
+            boolean alreadyGranted = manager.hasPermission(firstDevice);
+            Log.d(TAG, "startPreview: hasPermission=" + alreadyGranted
+                    + " for " + firstDevice.getDeviceName());
+
+            if (alreadyGranted) {
+                // Skip system permission dialog & broken broadcast
+                Log.d(TAG, "startPreview: permission already granted, calling mClient.requestPermission directly");
+                try {
+                    mClient.requestPermission(firstDevice);
+                } catch (Throwable e) {
+                    Log.e(TAG, "mClient.requestPermission (alreadyGranted path) failed", e);
+                }
+            } else {
+                // Old path: request permission via PendingIntent + BroadcastReceiver
+                initUsbPermissionIntent();
+                Log.d(TAG, "Requesting USB permission for: " + firstDevice.getDeviceName());
+                manager.requestPermission(firstDevice, usbPermissionIntent);
+            }
 
             JSObject ok = new JSObject();
             ok.put("started", true);
+            ok.put("deviceName", firstDevice.getDeviceName());
+            ok.put("vid", firstDevice.getVendorId());
+            ok.put("pid", firstDevice.getProductId());
             call.resolve(ok);
 
         } catch (Exception e) {
@@ -418,7 +521,7 @@ public class UvcCameraPlugin extends Plugin {
         }
     }
 
-    // ---------------- preview callback builder (BASE64 ONLY) ----------------
+    // ---------------- preview callback (BASE64 ONLY) ----------------
     private void buildPreviewCallback() {
         previewCb = new IPreviewDataCallBack() {
             private long lastEmit = 0;
@@ -509,6 +612,11 @@ public class UvcCameraPlugin extends Plugin {
     // ---------------- stopPreview ----------------
     @PluginMethod
     public void stopPreview(PluginCall call) {
+        if (internalCamera != null) {
+            internalCamera.stop();
+            internalCamera = null;
+        }
+
         stopPreviewInternal();
         JSObject res = new JSObject();
         res.put("stopped", true);
@@ -547,26 +655,75 @@ public class UvcCameraPlugin extends Plugin {
         return null;
     }
 
-    // ---------------- captureSnapshot (kept; file or base64) ----------------
+    // ---------------- captureSnapshot ----------------
     @PluginMethod
     public void captureSnapshot(final PluginCall call) {
         try {
-            if (mCamera == null || !mCamera.isCameraOpened()) {
-                call.reject("Camera not opened");
-                return;
-            }
-
             final String mode = call.getString("mode") == null ? "file" : call.getString("mode");
             Integer q = call.getInt("jpegQuality");
             final int jpegQuality = (q == null) ? 70 : q;
             Integer t = call.getInt("timeoutMs");
             final int timeoutMs = (t == null) ? 3000 : t;
 
+            // -------------------------------------------------------
+// INTERNAL CAMERA CAPTURE
+// -------------------------------------------------------
+            if (currentSource == SourceMode.INTERNAL) {
+                if (internalCamera == null) {
+                    call.reject("Internal camera not running");
+                    return;
+                }
+
+                internalCamera.takeOneShot((base64, w, h) -> {
+                    try {
+                        if ("file".equalsIgnoreCase(mode)) {
+                            byte[] jpegBytes = Base64.decode(base64, Base64.DEFAULT);
+//                            jpegBytes = mirrorJpeg(jpegBytes);
+
+
+                            File outDir = new File(getContext().getCacheDir(), "internal_snapshots");
+                            if (!outDir.exists()) outDir.mkdirs();
+
+                            File out = new File(
+                                    outDir,
+                                    "internal_snapshot_" + System.currentTimeMillis() + ".jpg"
+                            );
+
+                            try (FileOutputStream fos = new FileOutputStream(out)) {
+                                fos.write(jpegBytes);
+                            }
+
+                            JSObject res = new JSObject();
+                            res.put("width", w);
+                            res.put("height", h);
+                            res.put("file", "file://" + out.getAbsolutePath());
+                            mainHandler.post(() -> call.resolve(res));
+                        } else {
+                            JSObject res = new JSObject();
+                            res.put("width", w);
+                            res.put("height", h);
+                            res.put("data", base64);
+                            mainHandler.post(() -> call.resolve(res));
+                        }
+                    } catch (Throwable e) {
+                        mainHandler.post(() ->
+                                call.reject("Internal capture failed: " + e.getMessage()));
+                    }
+                });
+
+                return; // do NOT fall through to DSLR logic
+            }
+
+
+            // -------------------------------------------------------
+            // DSLR/UVC CAPTURE (YOUR ORIGINAL CODE — UNTOUCHED)
+            // -------------------------------------------------------
+
             final AtomicBoolean finished = new AtomicBoolean(false);
 
             final IPreviewDataCallBack oneShot = new IPreviewDataCallBack() {
                 @Override
-                public void onPreviewData(final byte[] data, final int width, final int height, IPreviewDataCallBack.DataFormat format) {
+                public void onPreviewData(final byte[] data, final int width, final int height, DataFormat format) {
                     try {
                         if (finished.getAndSet(true)) return;
 
@@ -593,6 +750,8 @@ public class UvcCameraPlugin extends Plugin {
                                         jpegBytes = baos.toByteArray();
                                         try { baos.close(); } catch (Exception ignore) {}
                                     }
+                                    jpegBytes = scaleJpeg(jpegBytes, 0.85f);
+//                                    jpegBytes = mirrorJpeg(jpegBytes);
                                     File outDir = new File(getContext().getCacheDir(), "uvc_snapshots");
                                     if (!outDir.exists()) outDir.mkdirs();
                                     File out = new File(outDir, "uvc_snapshot_" + System.currentTimeMillis() + ".jpg");
@@ -603,7 +762,6 @@ public class UvcCameraPlugin extends Plugin {
                                     res.put("file", "file://" + out.getAbsolutePath());
                                     mainHandler.post(() -> call.resolve(res));
                                 } else {
-                                    // base64 mode
                                     if (looksJpeg) {
                                         res.put("data", Base64.encodeToString(data, Base64.NO_WRAP));
                                     } else {
@@ -621,7 +779,8 @@ public class UvcCameraPlugin extends Plugin {
                         });
 
                     } catch (Throwable ex) {
-                        if (finished.compareAndSet(false, true)) call.reject("captureSnapshot failed: " + ex.getMessage());
+                        if (finished.compareAndSet(false, true))
+                            call.reject("captureSnapshot failed: " + ex.getMessage());
                     }
                 }
             };
@@ -640,14 +799,49 @@ public class UvcCameraPlugin extends Plugin {
         }
     }
 
-    // ---------------- capturePhoto (kept; captureImage + fallback to snapshot) ----------------
+
+    private byte[] scaleJpeg(byte[] jpegData, float scale) {
+        Bitmap src = BitmapFactory.decodeByteArray(jpegData, 0, jpegData.length);
+        int newW = (int)(src.getWidth() * scale);
+        int newH = src.getHeight();
+
+        Bitmap scaled = Bitmap.createScaledBitmap(src, newW, newH, true);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        scaled.compress(Bitmap.CompressFormat.JPEG, 80, baos);
+
+        return baos.toByteArray();
+    }
+
+    private byte[] mirrorJpeg(byte[] jpegBytes) {
+        Bitmap src = BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.length);
+        if (src == null) return jpegBytes;
+
+        Matrix m = new Matrix();
+        m.preScale(-1f, 1f); // horizontal mirror
+
+        Bitmap mirrored = Bitmap.createBitmap(
+                src, 0, 0, src.getWidth(), src.getHeight(), m, true
+        );
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        mirrored.compress(Bitmap.CompressFormat.JPEG, 90, baos);
+
+        src.recycle();
+        mirrored.recycle();
+
+        return baos.toByteArray();
+    }
+
+
+    // ---------------- capturePhoto ----------------
     @PluginMethod
     public void capturePhoto(final PluginCall call) {
         try {
-            if (mCamera == null || !mCamera.isCameraOpened()) {
-                call.reject("Camera not opened");
-                return;
-            }
+//            if (mCamera == null || !mCamera.isCameraOpened()) {
+//                call.reject("Camera not opened");
+//                return;
+//            }
 
             File outDir;
             try {

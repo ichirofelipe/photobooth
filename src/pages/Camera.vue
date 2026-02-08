@@ -1,11 +1,11 @@
 <template>
   <div>
-    <CaptureTimer v-if="timer" :timeLeft="timeLeft"/>
+    <CaptureTimer v-if="timer" :timeLeft="timeLeft" :imageCount="imageCount"/>
     <div v-if="Capacitor.getPlatform() === 'web'">
       <video id="cameraPreviewWeb" ref="videoRef" :class="{shutter: shutterFlag}" autoplay playsinline></video>
       <canvas ref="canvasRef" style="display: none;"></canvas>
     </div>
-    <div v-else>
+    <div id="UVCcamera_Container" v-else>
       <img
         v-if="UVCSrcRef"
         :src="UVCSrcRef"
@@ -32,6 +32,7 @@ const {
     canvasRef,
     UVCSrcRef,
     startCamera,
+    imageCount,
 } = useCamera();
 
 onMounted( async() => await startCamera());
@@ -71,13 +72,24 @@ video {
   transform: translate(-50%, -50%);
 }
 
-#UVCcamera{
-  width: auto;
+#UVCcamera_Container{
+  width: 85%;
   height: 100%;
   position: absolute;
   top: 0;
   left: 50%;
   transform: translateX(-50%);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+}
+
+#UVCcamera{
+  width: auto;
+  height: 100%;
+  transform: scaleX(-1);
+  transform-origin: center;
+  object-fit: cover;
 }
 
 @keyframes shutter {

@@ -12,18 +12,16 @@ export default function useCamera() {
     const canvasRef = ref(null);
     const UVCSrcRef = ref('');
     const loaderDelay = 5000;
-    const duration = 1; // countdown in seconds
+    const duration = 8; // countdown in seconds
     const timeLeft = ref(duration);
     const stopCameraPage = ['Home', "Template"];
     let timer = ref(null);
     let stream = null;
-    let imageCount = 0;
+    let imageCount = ref(0);
     let shutterFlag = ref(false);
     let isCameraRunning = false;
     let hasCountDownStarted = false;
     let frameListener;
-
-    console.log("A NEW LOG!!")
 
     const startCamera = async () => {
         console.log('Starting camera...');
@@ -44,13 +42,15 @@ export default function useCamera() {
         } else {
             const { devices } = await UvcCameraPlugin.listUvcDevices();
             const d = JSON.parse(devices)[0];
-            console.log(d.vendorId)
+            console.log(d);
+            
+            const USBState = await UvcCameraPlugin.debugUsbState();
+            console.log(USBState);
             if (!d) {
                 console.warn('No UVC devices found');
-                return;
+                // return;
             }
             frameListener = await UvcCameraPlugin.addListener('frame', (frame) => {
-                console.log("Base64 frame received", frame);
                 const img = new Image();
                 UVCSrcRef.value = `data:image/jpeg;base64,${frame.data}`;
 
@@ -65,14 +65,7 @@ export default function useCamera() {
                 }
             });
 
-            await UvcCameraPlugin.startPreview({
-                vendorId: 13407,
-                productId: 8457,
-                width: 640,
-                height: 480,
-                throttleMs: 0,      // 0 = no throttle, 30–100 = lower FPS
-                jpegQuality: 70
-            });
+            await UvcCameraPlugin.startPreview({});
 
             const { granted } = await UvcCameraPlugin.hasUsbPermission();
             console.log("hasUsbPermission:", granted);
@@ -107,7 +100,7 @@ export default function useCamera() {
                 timer.value = null;
                 
                 await capturePhoto()
-                if(imageCount < booth.selectedTemplate.imgCount) {
+                if(imageCount.value < booth.selectedTemplate.imgCount) {
                     resetCountdown();
                     setTimeout(() => {
                         startCountdown();
@@ -152,7 +145,7 @@ export default function useCamera() {
             // Save as data URL
             const imageData = canvas.toDataURL('image/png');
             booth.setImage(imageData);
-            imageCount++;
+            imageCount.value++;
             shutterFlag.value = true;
         }
         else
@@ -160,7 +153,7 @@ export default function useCamera() {
             const res = await UvcCameraPlugin.capturePhoto();
             const url = Capacitor.convertFileSrc(res.file);
             await booth.setImage(url);
-            imageCount++;
+            imageCount.value++;
             shutterFlag.value = true;
             
             // const result = await CameraPreview.capture({ quality: 45 });
@@ -194,6 +187,7 @@ export default function useCamera() {
         videoRef,
         canvasRef,
         UVCSrcRef,
-        startCamera
+        startCamera,
+        imageCount
     }
 }

@@ -17,7 +17,7 @@
 
             <v-rect v-if="getHeaderConfig(i)" :config="getHeaderConfig(i)"/>
 
-            <v-rect v-if="getLogoConfig(i)" :config="getLogoConfig(i)"/>
+            <v-rect v-if="getFooterConfig(i)" :config="getFooterConfig(i)"/>
             <!-- User Images -->
             <v-rect
               v-for="(data, index) in variation[booth.selectedVariation].imagesData"
@@ -48,7 +48,7 @@
         </div>
       </div>
     </div>
-    <button @click="handlePrint" class="pb-button p-5">PROCEED TO PRINT</button>
+    <button @click="handlePrint()" class="pb-button p-5" :class="{disabled: isPrintPressed}">PROCEED TO PRINT</button>
     <!-- <button class="pb-button p-5">PROCEED TO PRINT</button> -->
   </div>
 </template>
@@ -68,15 +68,17 @@ const {
   getImageConfig,
   frameData,
   layerRef,
-  getLogoConfig,
+  getFooterConfig,
   getHeaderConfig,
   variation,
   mainData,
   loadDesignData,
-  loadSetupImages
+  loadSetupImages,
+  isPrintPressed
 } = useDesign();
 
 onMounted(async () => {
+    await booth.loadNetworkData();
     await loadDesignData();
     await loadSetupImages();
     isReady.value = true;
@@ -183,6 +185,11 @@ onMounted(async () => {
 .variation-option.selected, .variation-option:hover {
   filter: brightness(1);
   transition: 0.5s;
+}
+
+.disabled {
+  pointer-events: none;
+  opacity: 0.5 !important;
 }
 
 </style>

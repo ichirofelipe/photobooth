@@ -1,11 +1,11 @@
 <template>
-  <div id="parent">
+  <div v-if="booth" id="parent">
     <h1 class="whitespace-nowrap tracking-wider">
       Setup
       <!-- Tokyo -->
     </h1>
 
-    <div v-if="isReady" id="frame-editor" class="flex gap-x-3 mx-auto">
+    <div id="frame-editor" class="flex gap-x-3 mx-auto">
       <div id="frame-viewer" class="">
         <v-stage ref="stageRef" :config="{width: responsiveWidth, height: responsiveHeight}">
           <v-layer>
@@ -18,7 +18,7 @@
 
             <v-rect v-if="getHeaderConfig()" :config="getHeaderConfig()"/>
 
-            <v-rect v-if="getLogoConfig()" :config="getLogoConfig()"/>
+            <v-rect v-if="getFooterConfig()" :config="getFooterConfig()"/>
             <!-- User Images -->
             <v-rect
               v-for="(img, index) in loadedImages"
@@ -39,7 +39,8 @@
             <button @click="addColor(color)">add</button>
           </div>
           <ul id="design-list" class="frame-options grid grid grid-cols-4 gap-2 scrollbar">
-            <li v-for="(color, index) in mainData.colorData" class="option color col-span-1" :class="[verifyColor(index), {selected: booth.selectedColorIndex === index}]" @click="booth.setColor(index)">
+            <li 
+              v-for="(color, index) in booth.mainData.colorData" class="option color col-span-1" :class="[verifyColor(index), {selected: booth.selectedColorIndex === index}]" @click="booth.setColor(index)">
               <div :style="'background:'+color.hex"></div>
               <span class="text" v-if="verifyColor(index) === 'no-data'"></span>
             </li>
@@ -50,35 +51,54 @@
         <div id="frames" class="frame-designs" :class="{disabled: verifyUploads()}">
           <h3 class="font-medium text-lg py-1">HEADER</h3>
           <div class="uploader">
-            <input type="file" multiple accept="image/*" @change="onFileChange($event, 'headerData')" />
-            <button @click="uploadImages('headerData')">upload</button>
+            <input type="file" multiple accept="image/*" @change="onFileChange($event, 'header')" />
+            <button @click="uploadImages('header')">upload</button>
           </div>
           <ul id="header-list" class="grid grid grid-cols-2 scrollbar">
-            <li v-for="(names, index) in mainData.headerData" class="col-span-1" :class="{selected: booth.selectedHeaderIndex === index}" @click="booth.setHeader(index)">
+            <li v-for="(names, index) in booth.mainData.headerData" class="col-span-1" :class="{selected: booth.selectedHeaderIndex === index}" @click="booth.setHeader(index)">
               <div>{{ names }}</div>
             </li>
           </ul>
         </div>
 
         <div id="frames" class="frame-designs" :class="{disabled: verifyUploads()}">
-          <h3 class="font-medium text-lg py-1">LOGO</h3>
+          <h3 class="font-medium text-lg py-1">FOOTER</h3>
           <div class="uploader">
-            <input type="file" multiple accept="image/*" @change="onFileChange($event, 'logoData')" />
-            <button @click="uploadImages('logoData')">upload</button>
+            <input type="file" multiple accept="image/*" @change="onFileChange($event, 'footer')" />
+            <button @click="uploadImages('footer')">upload</button>
           </div>
           <ul id="header-list" class="grid grid grid-cols-2 scrollbar">
-            <li v-for="(names, index) in mainData.logoData" class="col-span-1" :class="{selected: booth.selectedLogoIndex === index}" @click="booth.setLogo(index)">
+            <li v-for="(names, index) in booth.mainData.footerData" class="col-span-1" :class="{selected: booth.selectedFooterIndex === index}" @click="booth.setFooter(index)">
               <div>{{ names }}</div>
             </li>
           </ul>
         </div>
 
-        <button @click="saveColorSettings()" :class="{disabled: verifyUploads()}">Save Color Settings</button>
+        <button @click="saveColorSettings()">Save Color Settings</button>
+
+        <div id="network" class="frame-designs">
+          <h3 class="font-medium text-lg py-1">NETWORK SETTINGS</h3>
+          <div class="ipaddress">
+            <input placeholder="IP ADDRESS" type="text" @input="onInputSetupText('ipAddress', $event)" :value="nextworkValues.ipAddress??booth.networkData['ipAddress']">
+          </div>
+        </div>
+
+        <div id="frames" class="frame-designs">
+          <h3 class="font-medium text-lg py-1">HOME LOGO</h3>
+          <div class="uploader">
+            <input type="file" accept="image/*" @change="onFileChange($event, 'homeLogo')" />
+            <button @click="uploadImages('homeLogo', false)">upload</button>
+          </div>
+          <div id="logo-preview" v-if="booth.mainData.homeLogoImage?.src">
+            <img :src="booth.mainData.homeLogoImage?.src" alt="Logo Preview">
+          </div>
+        </div>
+
       </div>
     </div>
     <div class="flex gap-3 self-center">
       <button class="pb-button p-5" @click="resetSetup()">RESET</button>
-      <router-link to="/" class="pb-button p-5">DONE</router-link>
+      <router-link v-if="booth.mainData.colorData?.length > 0" to="/" class="pb-button p-5">DONE</router-link>
     </div>
   </div>
 </template>
@@ -89,9 +109,11 @@ import { ref, onMounted } from 'vue'
 import { ColorPicker } from "vue3-colorpicker";
 import { usePhotoboothStore } from '../assets/js/data';
 import "vue3-colorpicker/style.css";
-const booth = usePhotoboothStore();
-const isReady = ref(false);
+const booth = ref(null);
 const color = ref('#112357');
+const nextworkValues = ref({
+  ipAddress: undefined
+});
 const {
   responsiveWidth,
   responsiveHeight,
@@ -100,30 +122,28 @@ const {
   frameData,
   loadedImages,
   layerRef,
-  getLogoConfig,
+  getFooterConfig,
   getHeaderConfig,
   addColor,
-  mainData,
   verifyColor,
-  loadDesignData,
-  loadSetupImages,
   saveColorSettings,
   deleteColor,
   uploadImages,
   onFileChange,
-  resetSetup
+  resetSetup,
+  onInputSetupText
 } = useSetup();
 
 function verifyUploads() {
-  if(!booth.selectedColorIndex) return;
-  return verifyColor(booth.selectedColorIndex) !== 'no-data' || !booth.selectedColorIndex;
+  console.log('booth.selectedColorIndex', verifyColor(booth.value.selectedColorIndex));
+  if(!booth.value.selectedColorIndex === null) return;
+  return verifyColor(booth.value.selectedColorIndex) !== 'no-data' || !booth.value.selectedColorIndex;
 }
 
 onMounted(async () => {
-    await loadDesignData();
-    await loadSetupImages();
-    isReady.value = true;
+  booth.value = usePhotoboothStore();
 });
+
 </script>
 
 <style scoped>
@@ -330,6 +350,23 @@ button {
 .uploader ~ ul > li.selected {
   background: #666;
   color: #fff;
+}
+
+#network input {
+  width: 95%;
+  padding: 5px;
+  border: 1px solid #999;
+  border-radius: 5px;
+}
+
+#logo-preview {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+}
+
+#logo-preview img {
+  width: 100px;
 }
 
 </style>

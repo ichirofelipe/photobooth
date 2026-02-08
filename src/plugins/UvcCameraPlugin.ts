@@ -22,6 +22,10 @@ export const UvcCameraPlugin = registerPlugin('UvcCameraPlugin', {
       console.warn('hasUsbPermission not implemented on web');
       return { stopped: true };
     },
+    async debugUsbState() {
+      console.warn('debugUsbState not implemented on web');
+      return { stopped: true };
+    },
     addListener() {
       console.warn('addListener not implemented on web');
       return { remove() {} };

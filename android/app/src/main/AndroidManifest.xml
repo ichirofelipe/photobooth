@@ -4,12 +4,17 @@
 
     <!-- Required for USB Host mode -->
     <uses-feature android:name="android.hardware.usb.host" android:required="false"/>
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
 
     <!-- Permissions -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.USB_PERMISSION" tools:ignore="MissingPermission"/>
     <uses-permission android:name="android.permission.MANAGE_USB" tools:ignore="ProtectedPermissions"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:allowBackup="true"
@@ -34,10 +39,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!--
-              ESSENTIAL: This makes USB permission prompt appear EVERY time.
-              Without this, Android shows dialog only once.
-            -->
+            <!-- USB Device attached filter -->
             <intent-filter>
                 <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"/>
             </intent-filter>
@@ -46,6 +48,15 @@
                 android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/usb_device_filter"/>
         </activity>
+
+        <!-- UVC permission broadcast receiver (MUST be exported) -->
+        <receiver
+            android:name=".uvc.UsbPermissionReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.photobooth.app.USB_PERMISSION" />
+            </intent-filter>
+        </receiver>
 
         <!-- File providers -->
         <provider

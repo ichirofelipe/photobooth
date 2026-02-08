@@ -3,17 +3,17 @@
         {
             "hex": "#610404",
             "header": 1,
-            "logo": 1
+            "footer": 1
         },
         {
             "hex": "#fcf2e4",
             "header": null,
-            "logo": null
+            "footer": null
         },
         {
             "hex": "#112357",
             "header": null,
-            "logo": null
+            "footer": null
         }
     ],
     "headerData": [
@@ -22,11 +22,13 @@
     ],
     "headerImages": [
     ],
-    "logoData": [
-        "bottom-logo-black.svg", 
-        "bottom-logo-white.svg",
-        "bottom-logo-gray.svg"
+    "footerData": [
+        "bottom-logo-black-1.png",
+        "bottom-logo-white-1.png",
+        "bottom-logo-gray-1.png"
     ],
-    "logoImages": [
-    ]
+    "footerImages": [
+    ],
+    "homeLogoData": "logo-transparent.png",
+    "homeLogoImage": null
 }

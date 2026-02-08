@@ -2,20 +2,22 @@ import { ref, onMounted } from 'vue';
 import { frames } from '../../data/frameData.json';
 import { usePhotoboothStore } from './data';
 import { Filesystem, Directory } from '@capacitor/filesystem';
-import { PhotoPrint } from '@/plugins/photo-print';
 import designData from '../../data/designData.json';
+import { useRouter } from 'vue-router';
 
 // Get configuration for the base
 export default function useDesign() {
+    const router = useRouter()
     const mainData = ref();
     const booth = usePhotoboothStore();
+    const isPrintPressed = ref(false);
     const baseWidth = ref(480);
     const baseHeight = ref(750);
     const minHeight = 1100;
     const responsiveWidth = ref(baseWidth.value);
     const responsiveHeight = ref(baseHeight.value);
     const diff = ref(0);
-    const selectedFrameId = booth.selectedTemplate?.id ?? 0;
+    const selectedFrameId = booth.selectedTemplate?.id ?? 2;
     const { frameData, variation, baseData } = frames[selectedFrameId];
 
     onMounted(() => {
@@ -144,13 +146,13 @@ export default function useDesign() {
         return getImageRectConfig(variation[booth.selectedVariation].headerData, diff.value, headerImages[header], multiples)
     }
 
-    const getLogoConfig = (multiples = 0) => {
+    const getFooterConfig = (multiples = 0) => {
         if(booth.selectedDesign === null) return;
-        const { logoImages } = mainData.value;
-        const { logo } = mainData.value.colorData[booth.selectedDesign];
+        const { footerImages } = mainData.value;
+        const { footer } = mainData.value.colorData[booth.selectedDesign];
 
-        if(!logoImages[logo]) return;
-        return getImageRectConfig(variation[booth.selectedVariation].logoData, diff.value, logoImages[logo], multiples)
+        if(!footerImages[footer]) return;
+        return getImageRectConfig(variation[booth.selectedVariation].footerData, diff.value, footerImages[footer], multiples)
     };
 
     // Get configuration for each image
@@ -198,12 +200,13 @@ export default function useDesign() {
     }
 
     const handlePrint = async () => {
+        isPrintPressed.value = true;
         let dataURL = '';
         console.log('Frame Data:', frameData);
         if(frameData.rotate && Capacitor.getPlatform() === 'web')
         {
             const node = layerRef.value.getNode();
-            const oldCanvas = node.toCanvas({ pixelRatio: 8 });
+            const oldCanvas = node.toCanvas({ pixelRatio: 8, quality: 2 });
             const rotatedCanvas = document.createElement('canvas');
 
             // Swap width/height if rotating 90 or 270 degrees
@@ -221,7 +224,7 @@ export default function useDesign() {
         }
         else 
         {
-            dataURL = layerRef.value.getNode().toDataURL({ pixelRatio: 8 });
+            dataURL = layerRef.value.getNode().toDataURL({ pixelRatio: 8, quality: 2 });
         }
         
         if (Capacitor.getPlatform() === 'web') {
@@ -278,16 +281,14 @@ export default function useDesign() {
                 console.log("PRINT FAILED", err);
             }
             
-
-            // await PhotoPrint.print({ base64 });
-
             console.log("Saved & Printed successfully!");
+            router.push("/");
         }
     };
 
     const sendToPrintServer = async (base64) => {
         try {
-            const res = await fetch("http://192.168.100.3:3000/print", {
+            const res = await fetch(`http://${booth.networkData.ipAddress}:3000/print`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ img: base64, orientation: frameData.rotate ? 'portrait' : 'landscape' }),
@@ -315,15 +316,15 @@ export default function useDesign() {
             if(mainData.value === undefined)
             {
                 mainData.value = data;
-                mainData.value.colorData = data.colorData.filter(data => data.header !== null && data.logo !== null);
+                mainData.value.colorData = data.colorData.filter(data => data.header !== null && data.footer !== null);
             }
             else
             {
-                const { colorData, headerData, logoData } = data;
+                const { colorData, headerData, footerData } = data;
                 console.log('Loaded design data from filesystem:', data);
-                mainData.value.colorData = colorData.filter(data => data.header !== null && data.logo !== null);
+                mainData.value.colorData = colorData.filter(data => data.header !== null && data.footer !== null);
                 mainData.value.headerData = headerData;
-                mainData.value.logoData = logoData;
+                mainData.value.footerData = footerData;
             }
 
         } catch {
@@ -338,15 +339,15 @@ export default function useDesign() {
             // Return the default JSON
             console.log('Design data written to filesystem:', designData);
             mainData.value = JSON.parse(JSON.stringify(designData));
-            mainData.value.colorData = JSON.parse(JSON.stringify(designData)).colorData.filter(data => data.header !== null && data.logo !== null);
+            mainData.value.colorData = JSON.parse(JSON.stringify(designData)).colorData.filter(data => data.header !== null && data.footer !== null);
         }
     }
 
     const loadSetupImages = async () => {
         // LOAD HEADER IMGS
         await loadSetupImageHelper('header', booth.baseHeaderDir);
-        // LOAD LOGO IMGS
-        await loadSetupImageHelper('logo', booth.baseLogoDir);
+        // LOAD FOOTER IMGS
+        await loadSetupImageHelper('footer', booth.baseFooterDir);
 
         console.log('updated mainData after loading images', mainData.value);
     }
@@ -401,7 +402,7 @@ export default function useDesign() {
         const { colorData } = mainData.value;
         if(colorData.length === 0) return;
 
-        const hasData = colorData[index].header !== null && colorData[index].logo !== null;
+        const hasData = colorData[index].header !== null && colorData[index].footer !== null;
         console.log('hasData', hasData, index);
         return hasData ? '' : 'no-data';
     }
@@ -414,12 +415,13 @@ export default function useDesign() {
         getImageConfig,
         handlePrint,
         layerRef,
-        getLogoConfig,
+        getFooterConfig,
         getHeaderConfig,
         variation,
         mainData,
         loadDesignData,
         loadSetupImages,
-        verifyColor
+        verifyColor,
+        isPrintPressed
     }
 }

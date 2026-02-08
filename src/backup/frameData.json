@@ -2,7 +2,7 @@
     "frames": [
         {
             "imgSrc": "/images/templates/template0.png",
-            "label": "2 shots - 2 copy",
+            "label": "2 pose layout",
             "baseData": {
                 "width": 750,
                 "height": 480
@@ -18,7 +18,7 @@
                 {
                     "imgSrc": "/images/templates/frame0-1.png",
                     "copy": 2,
-                    "logoData": {
+                    "footerData": {
                         "x": 127.5,
                         "y": 0,
                         "width": 120,
@@ -42,7 +42,7 @@
                 {
                     "imgSrc": "/images/templates/frame0-2.png",
                     "copy": 2,
-                    "logoData": {
+                    "footerData": {
                         "x": 127.5,
                         "y": 448,
                         "width": 120,
@@ -67,7 +67,7 @@
         },
         {
             "imgSrc": "/images/templates/template1.png",
-            "label": "4 shots - 1 copy",
+            "label": "4 pose layout",
             "baseData": {
                 "width": 480,
                 "height": 750
@@ -83,7 +83,7 @@
                 {
                     "imgSrc": "/images/templates/frame1-1.png",
                     "copy": 2,
-                    "logoData": {
+                    "footerData": {
                         "x": 60,
                         "y": 715,
                         "width": 120,
@@ -114,7 +114,7 @@
         },
         {
             "imgSrc": "/images/templates/template2.png",
-            "label": "6 shots - 1 copy",
+            "label": "6 pose layout",
             "baseData": {
                 "width": 480,
                 "height": 750
@@ -130,7 +130,7 @@
                 {
                     "imgSrc": "/images/templates/frame2-1.png",
                     "copy": 2,
-                    "logoData": {
+                    "footerData": {
                         "x": 60,
                         "y": 715,
                         "width": 120,
@@ -166,7 +166,7 @@
                 {
                     "imgSrc": "/images/templates/frame2-2.png",
                     "copy": 2,
-                    "logoData": {
+                    "footerData": {
                         "x": 60,
                         "y": 0,
                         "width": 120,
@@ -202,7 +202,7 @@
                 {
                     "imgSrc": "/images/templates/frame2-3.png",
                     "copy": 2,
-                    "logoData": {
+                    "footerData": {
                         "x": 60,
                         "y": 715,
                         "width": 120,
@@ -239,7 +239,7 @@
         },
         {
             "imgSrc": "/images/templates/frame3-1.png",
-            "label": "4 shots - 1 copy",
+            "label": "4 pose layout",
             "baseData": {
                 "width": 750,
                 "height": 480
@@ -255,7 +255,7 @@
                 {
                     "imgSrc": "/images/templates/frame3-1.png",
                     "copy": 1,
-                    "logoData": {
+                    "footerData": {
                         "x": 315,
                         "y": 448,
                         "width": 120,
@@ -297,7 +297,7 @@
                 {
                     "imgSrc": "/images/templates/frame3-2.png",
                     "copy": 1,
-                    "logoData": {
+                    "footerData": {
                         "x": 315,
                         "y": 448,
                         "width": 120,

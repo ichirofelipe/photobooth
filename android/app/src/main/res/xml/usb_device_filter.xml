@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <usb-device vendor-id="13407" product-id="8457" />
-    <!-- Add more UVC cameras here if needed -->
+    <usb-device vendor-id="1356" product-id="3555" />
 </resources>

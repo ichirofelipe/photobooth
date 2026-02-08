@@ -6,7 +6,6 @@ import designData from '../../data/designData.json';
 
 // Get configuration for the base
 export default function useSetup() {
-    const mainData = ref();
     const booth = usePhotoboothStore();
     const baseWidth = 600;
     const baseHeight = 900;
@@ -14,11 +13,12 @@ export default function useSetup() {
     const responsiveWidth = ref(baseWidth);
     const responsiveHeight = ref(baseHeight);
     const diff = ref(0);
-    const selectedFrameId = booth.selectedTemplate?.id ?? 2;
+    const selectedFrameId = 2;
     const { frameData, variation } = frames[selectedFrameId];
     const uploadData = ref({
         headerData: [],
-        logoData: [],
+        footerData: [],
+        homeLogoData: null
     });
 
     onMounted(() => {
@@ -46,7 +46,7 @@ export default function useSetup() {
         const y = ((responsiveHeight.value - resHeight) / 2) + (frameStrokeWidth / 2);
         const width = resWidth - frameStrokeWidth;
         const height = resHeight - frameStrokeWidth;
-        const color = booth.selectedColorIndex !== null ? mainData.value.colorData[booth.selectedColorIndex].hex : '#ffffff';
+        const color = booth.selectedColorIndex !== null ? booth.mainData.colorData[booth.selectedColorIndex]?.hex : '#ffffff';
 
         return {
             x: x,
@@ -103,17 +103,17 @@ export default function useSetup() {
     const getHeaderConfig = () => {
         console.log('getting header config');
         if(booth.selectedColorIndex === null) return;
-        const { headerImages } = mainData.value;
-        const data = mainData.value.colorData[booth.selectedColorIndex];
+        const { headerImages } = booth.mainData;
+        const data = booth.mainData.colorData[booth.selectedColorIndex];
 
         let headerIndex = booth.selectedHeaderIndex;
-        if(data.header === null)
+        if(data?.header === null)
         {
             if(headerIndex === null) return;
         }
         else
         {
-            headerIndex = data.header;
+            headerIndex = data?.header ?? null;
         }
 
         if(!headerImages[headerIndex]) return;
@@ -121,25 +121,25 @@ export default function useSetup() {
         return getImageRectConfig(variation[booth.selectedVariation].headerData, diff.value, headerImages[headerIndex])
     }
 
-    const getLogoConfig = () => {
-        console.log('getting logo config');
+    const getFooterConfig = () => {
+        console.log('getting footer config');
         if(booth.selectedColorIndex === null) return;
-        const { logoImages } = mainData.value;
-        const data = mainData.value.colorData[booth.selectedColorIndex];
+        const { footerImages } = booth.mainData;
+        const data = booth.mainData.colorData[booth.selectedColorIndex];
 
-        let logoIndex = booth.selectedLogoIndex;
-        if(data.logo === null)
+        let footerIndex = booth.selectedFooterIndex;
+        if(data?.footer === null)
         {
-            if(logoIndex === null) return;
+            if(footerIndex === null) return;
         }
         else
         {
-            logoIndex = data.logo;
+            footerIndex = data?.footer ?? null;
         }
 
-        if(!logoImages[logoIndex]) return;
-        console.log('logo data', variation[booth.selectedVariation].logoData, diff.value, logoImages[logoIndex]);
-        return getImageRectConfig(variation[booth.selectedVariation].logoData, diff.value, logoImages[logoIndex])
+        if(!footerImages[footerIndex]) return;
+        console.log('footer data', variation[booth.selectedVariation].footerData, diff.value, footerImages[footerIndex]);
+        return getImageRectConfig(variation[booth.selectedVariation].footerData, diff.value, footerImages[footerIndex])
     };
 
     // Get configuration for each image
@@ -181,87 +181,12 @@ export default function useSetup() {
         };
     }
 
-    const loadDesignData = async () => {
-        try {
-            // Try to read the JSON from the app's writable directory
-            const result = await Filesystem.readFile({
-                path: 'designData.json',
-                directory: Directory.Data,
-                encoding: 'utf8'
-            });
-
-            // Parse and return the saved JSON
-            const data = JSON.parse(result.data);
-
-            if(mainData.value === undefined)
-            {
-                mainData.value = data;
-            }
-            else
-            {
-                const { colorData, headerData, logoData } = data;
-                mainData.value.colorData = colorData;
-                mainData.value.headerData = headerData;
-                mainData.value.logoData = logoData;
-            }
-
-        } catch (e){
-            // If not found, write the default JSON to the writable directory
-            await Filesystem.writeFile({
-                path: 'designData.json',
-                data: JSON.stringify(designData, null, 4), // 4-space indent
-                directory: Directory.Data,
-                encoding: 'utf8'
-            });
-
-            // Return the default JSON
-            console.log('Design data written to filesystem:', designData, e);
-            mainData.value = JSON.parse(JSON.stringify(designData));
-        }
-    }
-
-    const loadSetupImages = async () => {
-        // LOAD HEADER IMGS
-        await loadSetupImageHelper('header', booth.baseHeaderDir);
-        // LOAD LOGO IMGS
-        await loadSetupImageHelper('logo', booth.baseLogoDir);
-
-        console.log('updated mainData after loading images', mainData.value);
-    }
-
-    const loadSetupImageHelper = async (key, directory) => {
-        const data = mainData.value[`${key}Data`];
-
-        for (let index = 0; index < data.length; index++) {
-            const imgName = data[index];
-            const url = `${directory}${imgName}`;
-
-            let img;
-            try{
-                img = await booth.loadImgData(url);
-            }
-            catch(e){
-                console.log(`Cannot load ${key} image from base files trying to load in data directory:`, e);
-
-                try {
-                    img = await loadImage(`${key}Data/${imgName}`);
-                    console.log(`Loaded ${key} image from data directory:`, imgName);
-                }
-                catch(err){
-                    console.error(`Cannot load ${key} image:`, err);
-                    img = null;
-                }
-            }
-            mainData.value[`${key}Images`][index] = img;
-        }
-    }
-
     const verifyColor = (index) => {
         // if(!index) return 'no-data';
-        const { colorData } = mainData.value;
-        if(colorData.length === 0) return;
+        const { colorData } = booth.mainData;
+        if(!colorData) return;
 
-        const hasData = colorData[index].header !== null && colorData[index].logo !== null;
+        const hasData = colorData[index]?.header !== null && colorData[index]?.footer !== null;
         console.log('hasData', hasData, index);
         return hasData ? '' : 'no-data';
     }
@@ -270,17 +195,17 @@ export default function useSetup() {
         const newColorData = {
             hex: newColor,
             header: null,
-            logo: null,
+            footer: null,
         }
-        mainData.value.colorData.push(newColorData);
-        await saveJson();
+        booth.mainData.colorData.push(newColorData);
+        await booth.saveJson("designData.json", JSON.stringify(booth.mainData, null, 4));
     }
 
     const deleteColor = async () => {
         if(booth.selectedColorIndex === null) return;
-        mainData.value.colorData.splice(booth.selectedColorIndex, 1);
+        booth.mainData.colorData.splice(booth.selectedColorIndex, 1);
 
-        await saveJson();
+        await booth.saveJson("designData.json", JSON.stringify(booth.mainData, null, 4));
         booth.setColor(null);
     }
 
@@ -290,17 +215,18 @@ export default function useSetup() {
         const newColorData = {
             color: booth.selectedColorIndex,
             header: booth.selectedHeaderIndex,
-            logo: booth.selectedLogoIndex,
+            footer: booth.selectedFooterIndex,
         };
-        const colorData = mainData.value.colorData[booth.selectedColorIndex];
-        colorData.header = newColorData.header;;
-        colorData.logo = newColorData.logo;
+        const colorData = booth.mainData.colorData[booth.selectedColorIndex];
+        colorData.header = newColorData.header;
+        colorData.footer = newColorData.footer;
         
-        await saveJson();
+        await booth.saveJson("designData.json", JSON.stringify(booth.mainData, null, 4));
     }
 
     const onFileChange = (event, key) => {
-        uploadData.value[key] = event.target.files;
+        uploadData.value[`${key}Data`] = event.target.files;
+        console.log('Selected files for', key, uploadData.value[`${key}Data`]);
     }
 
     // Reads file and returns base64
@@ -312,74 +238,56 @@ export default function useSetup() {
         });
     }
 
-    const uploadImages = async (key) => {
-        await writeImageFiles(key);
-        await loadSetupImages();
+    const uploadImages = async (key, isArray = true) => {
+        if(isArray)
+        {
+            await writeMultiImageFiles(key);
+        }
+        else
+        {
+            await writeSingleImageFile(key);
+        }
+        console.log("check main before saving", booth.mainData)
+        await booth.saveJson("designData.json", JSON.stringify(booth.mainData, null, 4));
+        await booth.reloadMainData();
     }
 
-    const writeImageFiles = async (key) => {
-        for (const file of uploadData.value[key]) {
-            const base64 = await readFileAsBase64(file);
+    const writeSingleImageFile = async (key) => {
+        booth.mainData[`${key}Image`] = await writeImgFile(key, uploadData.value[`${key}Data`][0]);
+        booth.mainData[`${key}Data`] = uploadData.value[`${key}Data`][0].name;
+    }
 
-            // Save the file into app storage
-            await Filesystem.writeFile({
-                path: `${key}/${file.name}`,
-                data: base64,
-                directory: Directory.Data,
-                recursive: true
-            });
-
-            mainData.value[key].push(file.name);
+    const writeMultiImageFiles = async (key) => {
+        for (const file of uploadData.value[`${key}Data`]) {
+            booth.mainData[`${key}Image`] = await writeImgFile(key, file);
+            booth.mainData[`${key}Data`].push(file.name);
         }
     }
 
-    const loadImage = async (filePath) => {
-        const result = await Filesystem.readFile({
-            path: filePath,
-            directory: Directory.Data
-        });
-        // gets MIME type (png, jpg, svg, etc)
-        const ext = filePath.split('.').pop().toLowerCase();
-        let mime = 'image/png';
-        if (ext === 'jpg' || ext === 'jpeg') mime = 'image/jpeg';
-        if (ext === 'svg') mime = 'image/svg+xml';
-
-        // build usable image url
-        const imgSrc = `data:${mime};base64,${result.data}`;
-
-        // return actual Image() using your existing function
-        return booth.loadImgData(imgSrc);
-    }
-
-    const saveJson = async () => {
+    const writeImgFile = async (key, file) => {
+        console.log('Uploading file for', key, file);
+        const base64 = await readFileAsBase64(file);
+        // Save the file into app storage
         await Filesystem.writeFile({
-            path: 'designData.json',
-            data: JSON.stringify(mainData.value, null, 4),
-            directory: Directory.Data, // or Directory.Data
-            encoding: Encoding.UTF8,
+            path: `${key}Data/${file.name}`,
+            data: base64,
+            directory: Directory.Data,
+            recursive: true
         });
-        await loadDesignData();
-        console.log("SAVE", mainData.value);
+
+        return base64;
+        // await booth.saveJson(`${key}/${file.name}`, base64);
     }
 
-    const deleteDesignJson = async () => {
-        try {
-            await Filesystem.deleteFile({
-                path: 'designData.json',
-                directory: Directory.Data
-            });
-
-            console.log('designData.json deleted');
-        } catch (err) {
-            console.error('Delete failed:', err);
-        }
+    const onInputSetupText = (index, e) => {
+        booth.networkData[index] = e.target.value;
+        booth.saveJson("networkData.json", JSON.stringify(booth.networkData, null, 4));
     }
 
     const resetSetup = async () => {
         booth.setColor(null);
-        await deleteDesignJson();
-        await loadDesignData();
-        await loadSetupImages();
+        await booth.deleteDesignJson();
+        await booth.reloadMainData();
     }
 
     return {
@@ -390,17 +298,15 @@ export default function useSetup() {
         loadedImages,
         getImageConfig,
         layerRef,
-        getLogoConfig,
+        getFooterConfig,
         getHeaderConfig,
         addColor,
-        mainData,
         verifyColor,
-        loadDesignData,
-        loadSetupImages,
         saveColorSettings,
         deleteColor,
         uploadImages,
         onFileChange,
-        resetSetup
+        resetSetup,
+        onInputSetupText
     }
 }
