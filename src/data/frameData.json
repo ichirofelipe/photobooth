@@ -5,11 +5,11 @@
             "label": "2 pose layout",
             "baseData": {
                 "width": 750,
-                "height": 480
+                "height": 500
             },
             "frameData": {
                 "width": 375,
-                "height": 480,
+                "height": 500,
                 "strokeSize": 0.5,
                 "imageCount": 2,
                 "rotate": false
@@ -69,11 +69,11 @@
             "imgSrc": "/images/templates/template1.png",
             "label": "4 pose layout",
             "baseData": {
-                "width": 480,
+                "width": 500,
                 "height": 750
             },
             "frameData": {
-                "width": 240,
+                "width": 250,
                 "height": 750,
                 "strokeSize": 0.5,
                 "imageCount": 4,
@@ -84,28 +84,28 @@
                     "imgSrc": "/images/templates/frame1-1.png",
                     "copy": 2,
                     "footerData": {
-                        "x": 60,
+                        "x": 65,
                         "y": 715,
                         "width": 120,
                         "height": 30
                     },
                     "headerData": {
                         "x": 0,
-                        "y": -20,
-                        "width": 240,
-                        "height": 270
+                        "y": 0,
+                        "width": 250,
+                        "height": 250
                     },
                     "imagesData": [
                         {
                             "x": 9.5,
-                            "y": 230,
-                            "width": 220,
+                            "y": 250,
+                            "width": 230,
                             "height": 148
                         },
                         {
                             "x": 9.5,
-                            "y": 388,
-                            "width": 220,
+                            "y": 408,
+                            "width": 230,
                             "height": 148
                         }
                     ]
@@ -116,11 +116,11 @@
             "imgSrc": "/images/templates/template2.png",
             "label": "6 pose layout",
             "baseData": {
-                "width": 480,
+                "width": 500,
                 "height": 750
             },
             "frameData": {
-                "width": 240,
+                "width": 250,
                 "height": 750,
                 "strokeSize": 0.5,
                 "imageCount": 6,
@@ -131,34 +131,34 @@
                     "imgSrc": "/images/templates/frame2-1.png",
                     "copy": 2,
                     "footerData": {
-                        "x": 60,
+                        "x": 65,
                         "y": 715,
                         "width": 120,
                         "height": 30
                     },
                     "headerData": {
                         "x": 0,
-                        "y": -10,
-                        "width": 240,
-                        "height": 270
+                        "y": 0,
+                        "width": 250,
+                        "height": 250
                     },
                     "imagesData": [
                         {
                             "x": 9.5,
                             "y": 250,
-                            "width": 220,
+                            "width": 230,
                             "height": 148
                         },
                         {
                             "x": 9.5,
                             "y": 408,
-                            "width": 220,
+                            "width": 230,
                             "height": 148
                         },
                         {
                             "x": 9.5,
                             "y": 566,
-                            "width": 220,
+                            "width": 230,
                             "height": 148
                         }
                     ]
@@ -167,70 +167,34 @@
                     "imgSrc": "/images/templates/frame2-2.png",
                     "copy": 2,
                     "footerData": {
-                        "x": 60,
-                        "y": 0,
+                        "x": 65,
+                        "y": 5,
                         "width": 120,
                         "height": 30
                     },
                     "headerData": {
                         "x": 0,
-                        "y": 475,
-                        "width": 240,
-                        "height": 270
+                        "y": 500,
+                        "width": 250,
+                        "height": 250
                     },
                     "imagesData": [
                         {
                             "x": 9.5,
-                            "y": 30,
-                            "width": 220,
+                            "y": 35,
+                            "width": 230,
                             "height": 148
                         },
                         {
                             "x": 9.5,
-                            "y": 188,
-                            "width": 220,
+                            "y": 193,
+                            "width": 230,
                             "height": 148
                         },
                         {
                             "x": 9.5,
-                            "y": 346,
-                            "width": 220,
-                            "height": 148
-                        }
-                    ]
-                },
-                {
-                    "imgSrc": "/images/templates/frame2-3.png",
-                    "copy": 2,
-                    "footerData": {
-                        "x": 60,
-                        "y": 715,
-                        "width": 120,
-                        "height": 30
-                    },
-                    "headerData": {
-                        "x": 0,
-                        "y": -20,
-                        "width": 240,
-                        "height": 270
-                    },
-                    "imagesData": [
-                        {
-                            "x": 9.5,
-                            "y": 180,
-                            "width": 220,
-                            "height": 148
-                        },
-                        {
-                            "x": 9.5,
-                            "y": 338,
-                            "width": 220,
-                            "height": 148
-                        },
-                        {
-                            "x": 9.5,
-                            "y": 496,
-                            "width": 220,
+                            "y": 351,
+                            "width": 230,
                             "height": 148
                         }
                     ]
@@ -242,11 +206,11 @@
             "label": "4 pose layout",
             "baseData": {
                 "width": 750,
-                "height": 480
+                "height": 500
             },
             "frameData": {
                 "width": 750,
-                "height": 480,
+                "height": 500,
                 "strokeSize": 0.5,
                 "imageCount": 4,
                 "rotate": false
@@ -257,38 +221,38 @@
                     "copy": 1,
                     "footerData": {
                         "x": 315,
-                        "y": 448,
+                        "y": 468,
                         "width": 120,
                         "height": 30
                     },
                     "headerData": {
-                        "x": 450,
-                        "y": 0,
-                        "width": 300,
-                        "height": 300
+                        "x": 478,
+                        "y": 20,
+                        "width": 270,
+                        "height": 270
                     },
                     "imagesData": [
                         {
                             "x": 7,
                             "y": 7,
-                            "width": 450,
-                            "height": 275
+                            "width": 470,
+                            "height": 295
                         },
                         {
                             "x": 7,
-                            "y": 289,
+                            "y": 309,
                             "width": 240,
                             "height": 160
                         },
                         {
                             "x": 254,
-                            "y": 289,
+                            "y": 309,
                             "width": 240,
                             "height": 160
                         },
                         {
                             "x": 501,
-                            "y": 289,
+                            "y": 309,
                             "width": 240,
                             "height": 160
                         }
@@ -299,38 +263,38 @@
                     "copy": 1,
                     "footerData": {
                         "x": 315,
-                        "y": 448,
+                        "y": 468,
                         "width": 120,
                         "height": 30
                     },
                     "headerData": {
-                        "x": -7,
-                        "y": 0,
-                        "width": 300,
-                        "height": 300
+                        "x": 0,
+                        "y": 20,
+                        "width": 270,
+                        "height": 270
                     },
                     "imagesData": [
                         {
-                            "x": 293,
+                            "x": 271,
                             "y": 7,
-                            "width": 450,
-                            "height": 275
+                            "width": 470,
+                            "height": 295
                         },
                         {
                             "x": 7,
-                            "y": 289,
+                            "y": 309,
                             "width": 240,
                             "height": 160
                         },
                         {
                             "x": 254,
-                            "y": 289,
+                            "y": 309,
                             "width": 240,
                             "height": 160
                         },
                         {
                             "x": 501,
-                            "y": 289,
+                            "y": 309,
                             "width": 240,
                             "height": 160
                         }

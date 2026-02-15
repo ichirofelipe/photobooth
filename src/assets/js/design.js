@@ -11,7 +11,7 @@ export default function useDesign() {
     const mainData = ref();
     const booth = usePhotoboothStore();
     const isPrintPressed = ref(false);
-    const baseWidth = ref(480);
+    const baseWidth = ref(500);
     const baseHeight = ref(750);
     const minHeight = 1100;
     const responsiveWidth = ref(baseWidth.value);
