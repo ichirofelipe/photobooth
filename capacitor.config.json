@@ -3,5 +3,9 @@
   "appName": "photobooth",
   "webDir": "dist",
   "loggingBehavior": "none",
-  "hideLogs": true
+  "hideLogs": true,
+  "server": {
+    "cleartext": true,
+    "url": "https://tinklingly-fanatical-brinda.ngrok-free.dev"
+  }
 }

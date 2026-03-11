@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import designData from '../../data/designData.json';
 import rawNetworkData from '../../data/networkData.json';
+import { frames } from '../../data/frameData.json';
 import { Directory, Encoding, Filesystem } from '@capacitor/filesystem';
 
 export const usePhotoboothStore = defineStore('photobooth', {
@@ -9,6 +10,49 @@ export const usePhotoboothStore = defineStore('photobooth', {
     baseHeaderDir: "/images/designs/",
     baseFooterDir: "/images/footer/",
     baseHomeLogoDir: "/images/homeLogo/",
+    //test values
+    testImages: [
+        {
+            src: '/images/captures/sample1.webp',
+            width: 1200,
+            height: 1197,
+        },
+        {
+            src: '/images/captures/sample2.webp',
+            width: 1200,
+            height: 1197,
+        },
+        {
+            src: '/images/captures/sample3.webp',
+            width: 1200,
+            height: 1197,
+        },
+        {
+            src: '/images/captures/sample4.webp',
+            width: 1200,
+            height: 1197,
+        },
+        {
+            src: '/images/captures/sample1.webp',
+            width: 1200,
+            height: 1197,
+        },
+        {
+            src: '/images/captures/sample2.webp',
+            width: 1200,
+            height: 1197,
+        },
+        {
+            src: '/images/captures/sample3.webp',
+            width: 1200,
+            height: 1197,
+        },
+        {
+            src: '/images/captures/sample4.webp',
+            width: 1200,
+            height: 1197,
+        },
+    ],
     
     // CHANGING VARIABLES
     selectedTemplate: null,
@@ -16,9 +60,14 @@ export const usePhotoboothStore = defineStore('photobooth', {
     selectedDesign: 0,
     uploadedImages: [],
 
+
+    // SETUP PAGE
     selectedColorIndex: null,
     selectedFooterIndex: null,
     selectedHeaderIndex: null,
+    currentTemplateIndex: 3,
+    currentTemplate: frames[3],
+    loadedTestImages: [],
 
     // INIT VARIABLES (one time)
     uploadData: {
@@ -37,6 +86,7 @@ export const usePhotoboothStore = defineStore('photobooth', {
     async init() {
       if (!this.initialized) {
         await this.reloadMainData();
+        this.loadTestImages();
         console.log('Photobooth store initialized', this.mainData);
         this.initialized = true;
       }
@@ -64,6 +114,20 @@ export const usePhotoboothStore = defineStore('photobooth', {
     setColor(colorIndex) {
       this.selectedColorIndex = colorIndex;
     },
+    setFrame(direction) {
+      switch (direction) {
+            case 'prev':
+                this.currentTemplateIndex = this.currentTemplateIndex > 0 ? this.currentTemplateIndex - 1 : 3;
+                this.currentTemplate = frames[this.currentTemplateIndex];
+                console.log('Current setup template:', this.currentTemplateIndex);
+                break;
+            case 'next':
+                this.currentTemplateIndex = this.currentTemplateIndex < 3 ? this.currentTemplateIndex + 1 : 0;
+                this.currentTemplate = frames[this.currentTemplateIndex];
+                console.log('Current setup template:', this.currentTemplateIndex);
+                break;
+        }
+    },
     setHeader(headerIndex) {
       this.selectedHeaderIndex = headerIndex;
     },
@@ -79,6 +143,10 @@ export const usePhotoboothStore = defineStore('photobooth', {
       this.uploadedImages = [];
       this.selectedDesign = 0;
     },
+    getImagesForCurrentTemplate() {
+      const imagesData = this.currentTemplate.variation[this.selectedVariation].imagesData || [];
+      return this.loadedTestImages.slice(0, imagesData.length);
+    },
     loadImgData (url) {
       return loadImgFunc(url);
     },
@@ -88,7 +156,6 @@ export const usePhotoboothStore = defineStore('photobooth', {
       });
     },
     async reloadMainData() {
-
       await this.dumpDir();
 
       await this.loadDesignData();
@@ -99,6 +166,13 @@ export const usePhotoboothStore = defineStore('photobooth', {
       await this.loadImageHelper('footer', this.baseFooterDir);
       // LOAD HOME LOGO IMGS
       await this.loadImageHelper('homeLogo', this.baseHomeLogoDir);
+    },
+    loadTestImages() {
+      this.testImages.forEach((img, index) => {
+        this.loadImgData(img.src).then((imgData) => {
+          this.loadedTestImages[index] = imgData;
+        });
+      });
     },
     async loadDesignData() {
       try {

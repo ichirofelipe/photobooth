@@ -7,12 +7,14 @@
 
     <div id="frame-editor" class="flex gap-x-3 mx-auto">
       <div id="frame-viewer" class="">
+        <i @click="booth.setFrame('prev')" class="frame-arrow mdi mdi-arrow-left"></i>
+        <i @click="booth.setFrame('next')" class="frame-arrow mdi mdi-arrow-right"></i>
         <v-stage ref="stageRef" :config="{width: responsiveWidth, height: responsiveHeight}">
           <v-layer>
             <!-- BASE -->
             <v-rect :config="{width: responsiveWidth, height: responsiveHeight, fill: 'white'}" />
           </v-layer>
-          <v-layer ref="layerRef" :config="frameData">
+          <v-layer ref="layerRef" :config="booth.currentTemplate.frameData">
             <!-- FRAME -->
             <v-rect v-if="getFrameConfig()" :config="getFrameConfig()" />
 
@@ -20,10 +22,23 @@
 
             <v-rect v-if="getFooterConfig()" :config="getFooterConfig()"/>
             <!-- User Images -->
-            <v-rect
-              v-for="(img, index) in loadedImages"
-              :key="index"
-              :config="getImageConfig(img, index)"
+            <template v-if="booth.loadedTestImages.length">
+              <v-rect
+                v-for="(imgData, index) in booth.getImagesForCurrentTemplate()"
+                :key="index"
+                :config="getImageConfig(imgData, index)"
+              />
+            </template>
+
+            <v-text
+              v-else
+              :config="{
+                text: 'Loading Images...',
+                x: 10,
+                y: 10,
+                fontSize: 20,
+                fill: 'black'
+              }"
             />
 
           </v-layer>
@@ -120,7 +135,6 @@ const {
   getFrameConfig,
   getImageConfig,
   frameData,
-  loadedImages,
   layerRef,
   getFooterConfig,
   getHeaderConfig,
@@ -316,6 +330,28 @@ onMounted(async () => {
     border-radius: 0;
 }
 
+.frame-arrow {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 1px solid #ccc;
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 100%;
+}
+
+.frame-arrow.mdi-arrow-left {
+  left: 0px;
+}
+
+.frame-arrow.mdi-arrow-right {
+  right: 0px;
+}
+
 #header-list {
   padding-top: 10px;
   row-gap: 5px;
@@ -367,6 +403,11 @@ button {
 
 #logo-preview img {
   width: 100px;
+}
+
+#frame-viewer {
+  position: relative;
+  height: fit-content;
 }
 
 </style>

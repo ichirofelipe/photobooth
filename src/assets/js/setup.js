@@ -1,5 +1,4 @@
 import { ref, onMounted } from 'vue';
-import { frames } from '../../data/frameData.json';
 import { usePhotoboothStore } from './data';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import designData from '../../data/designData.json';
@@ -7,14 +6,10 @@ import designData from '../../data/designData.json';
 // Get configuration for the base
 export default function useSetup() {
     const booth = usePhotoboothStore();
-    const baseWidth = 600;
-    const baseHeight = 900;
     const minHeight = 1100;
-    const responsiveWidth = ref(baseWidth);
-    const responsiveHeight = ref(baseHeight);
+    const responsiveWidth = ref(booth.currentTemplate.baseData.width);
+    const responsiveHeight = ref(booth.currentTemplate.baseData.height);
     const diff = ref(0);
-    const selectedFrameId = 2;
-    const { frameData, variation } = frames[selectedFrameId];
     const uploadData = ref({
         headerData: [],
         footerData: [],
@@ -29,19 +24,21 @@ export default function useSetup() {
     const updateSizing = () => {
         const tmpDiff = (minHeight-window.innerHeight)/minHeight;
         diff.value = tmpDiff >= 0 ? tmpDiff : 0;
-        responsiveWidth.value = baseWidth-(baseWidth*diff.value);
-        responsiveHeight.value = baseHeight-(baseHeight*diff.value);
+        responsiveWidth.value = booth.currentTemplate.baseData.width-(booth.currentTemplate.baseData.width*diff.value);
+        responsiveHeight.value = booth.currentTemplate.baseData.height-(booth.currentTemplate.baseData.height*diff.value);
 
-        console.log(diff.value,window.innerHeight,baseWidth-(baseWidth*diff.value))
+        console.log(diff.value,window.innerHeight,booth.currentTemplate.baseData.width-(booth.currentTemplate.baseData.width*diff.value))
     }
 
     // Get configuration for the frame
     const getFrameConfig = () => {
-        const resWidth = frameData.width-(frameData.width*diff.value);
-        const resHeight = frameData.height-(frameData.height*diff.value);
+        updateSizing();
+        console.log('getting frame config', booth.currentTemplate.frameData, diff.value);
+        const resWidth = booth.currentTemplate.frameData.width-(booth.currentTemplate.frameData.width*diff.value);
+        const resHeight = booth.currentTemplate.frameData.height-(booth.currentTemplate.frameData.height*diff.value);
 
-        const scaleFactorWidth = resWidth / frameData.width;
-        const frameStrokeWidth = frameData.strokeSize;
+        const scaleFactorWidth = resWidth / booth.currentTemplate.frameData.width;
+        const frameStrokeWidth = booth.currentTemplate.frameData.strokeSize;
         const x = ((responsiveWidth.value - (resWidth)) / 2) + (frameStrokeWidth / 2);
         const y = ((responsiveHeight.value - resHeight) / 2) + (frameStrokeWidth / 2);
         const width = resWidth - frameStrokeWidth;
@@ -62,43 +59,6 @@ export default function useSetup() {
     }
 
     const layerRef = ref(null);
-    const loadedImages = ref({});
-    
-    //test values
-    const testImages = [
-        {
-            src: '/images/captures/sample1.webp',
-            width: 1200,
-            height: 1197,
-        },
-        {
-            src: '/images/captures/sample2.webp',
-            width: 1200,
-            height: 1197,
-        },
-        {
-            src: '/images/captures/sample3.webp',
-            width: 1200,
-            height: 1197,
-        },
-        {
-            src: '/images/captures/sample4.webp',
-            width: 1200,
-            height: 1197,
-        },
-    ]
-
-    // Load images
-    onMounted(() => {
-        testImages.forEach((img, index) => {
-            booth.loadImgData(img.src).then((imgData) => {
-                loadedImages.value = {
-                    ...loadedImages.value,
-                    [index]: imgData
-                };
-            });
-        });
-    });
 
     const getHeaderConfig = () => {
         console.log('getting header config');
@@ -117,8 +77,8 @@ export default function useSetup() {
         }
 
         if(!headerImages[headerIndex]) return;
-        console.log('header data', variation[booth.selectedVariation].headerData, diff.value, headerImages[headerIndex]);
-        return getImageRectConfig(variation[booth.selectedVariation].headerData, diff.value, headerImages[headerIndex])
+        console.log('header data', booth.currentTemplate.variation[booth.selectedVariation].headerData, diff.value, headerImages[headerIndex]);
+        return getImageRectConfig(booth.currentTemplate.variation[booth.selectedVariation].headerData, diff.value, headerImages[headerIndex])
     }
 
     const getFooterConfig = () => {
@@ -138,14 +98,15 @@ export default function useSetup() {
         }
 
         if(!footerImages[footerIndex]) return;
-        console.log('footer data', variation[booth.selectedVariation].footerData, diff.value, footerImages[footerIndex]);
-        return getImageRectConfig(variation[booth.selectedVariation].footerData, diff.value, footerImages[footerIndex])
+        console.log('footer data', booth.currentTemplate.variation[booth.selectedVariation].footerData, diff.value, footerImages[footerIndex]);
+        return getImageRectConfig(booth.currentTemplate.variation[booth.selectedVariation].footerData, diff.value, footerImages[footerIndex])
     };
 
     // Get configuration for each image
-    const getImageConfig = (img, index) => {
-        if(!variation[booth.selectedVariation].imagesData[index]) return;
-        const imgRectData = getImageRectConfig(variation[booth.selectedVariation].imagesData[index], diff.value, img)
+    const getImageConfig = (imgData, index) => {
+        if(!booth.currentTemplate.variation[booth.selectedVariation].imagesData[index]) return;
+        console.log('getting image config for index', index, booth.loadedTestImages, booth.loadedTestImages[index]);
+        const imgRectData = getImageRectConfig(booth.currentTemplate.variation[booth.selectedVariation].imagesData[index], diff.value, imgData);
 
         return {
             ...imgRectData,
@@ -294,8 +255,6 @@ export default function useSetup() {
         responsiveWidth,
         responsiveHeight,
         getFrameConfig,
-        frameData,
-        loadedImages,
         getImageConfig,
         layerRef,
         getFooterConfig,

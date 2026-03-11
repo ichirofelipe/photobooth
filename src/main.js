@@ -5,6 +5,7 @@ import router from './router';
 import VueKonva from 'vue-konva';
 import './style.css'
 import { registerCapacitorListeners } from './assets/js/capacitor-listeners';
+import '@mdi/font/css/materialdesignicons.css'
 
 const app = createApp(App);
 
