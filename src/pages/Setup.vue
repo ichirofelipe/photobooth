@@ -7,8 +7,8 @@
 
     <div id="frame-editor" class="flex gap-x-3 mx-auto">
       <div id="frame-viewer" class="">
-        <i @click="booth.setFrame('prev')" class="frame-arrow mdi mdi-arrow-left"></i>
-        <i @click="booth.setFrame('next')" class="frame-arrow mdi mdi-arrow-right"></i>
+        <i @click="booth.setFrame('prev')" class="frame-arrow mdi mdi-chevron-left"></i>
+        <i @click="booth.setFrame('next')" class="frame-arrow mdi mdi-chevron-right"></i>
         <v-stage ref="stageRef" :config="{width: responsiveWidth, height: responsiveHeight}">
           <v-layer>
             <!-- BASE -->
@@ -335,21 +335,24 @@ onMounted(async () => {
   z-index: 1;
   top: 50%;
   transform: translateY(-50%);
-  border: 1px solid #ccc;
   width: 25px;
-  height: 25px;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 100%;
+  /* border: 1px solid #ccc;
+  border-radius: 100%; */
+  cursor: pointer;
+  color: black;
+  font-size: 5vh;
 }
 
-.frame-arrow.mdi-arrow-left {
-  left: 0px;
+.frame-arrow.mdi-chevron-left {
+  left: 5px;
 }
 
-.frame-arrow.mdi-arrow-right {
-  right: 0px;
+.frame-arrow.mdi-chevron-right {
+  right: 5px;
 }
 
 #header-list {
