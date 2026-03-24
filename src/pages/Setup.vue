@@ -1,12 +1,17 @@
 <template>
   <div v-if="booth" id="parent">
+    <ul id="floating-tabs" class="floating-tabs">
+      <li :class="{active: currentTab === 'template'}"><i @click="currentTab = 'template'" class="mdi mdi-view-grid"></i></li>
+      <li :class="{active: currentTab === 'settings'}"><i @click="currentTab = 'settings'" class="mdi mdi-cog"></i></li>
+    </ul>
+
     <h1 class="whitespace-nowrap tracking-wider">
       Setup
       <!-- Tokyo -->
     </h1>
 
     <div id="frame-editor" class="flex gap-x-3 mx-auto">
-      <div id="frame-viewer" class="">
+      <div v-if="currentTab === 'template'" id="frame-viewer" class="">
         <i @click="booth.setFrame('prev')" class="frame-arrow mdi mdi-chevron-left"></i>
         <i @click="booth.setFrame('next')" class="frame-arrow mdi mdi-chevron-right"></i>
         <v-stage ref="stageRef" :config="{width: responsiveWidth, height: responsiveHeight}">
@@ -45,7 +50,7 @@
         </v-stage>
       </div>
 
-      <div class="flex flex-col gap-3">
+      <div v-if="currentTab === 'template'" class="flex flex-col gap-3">
         <div id="frames" class="frame-designs">
           <h3 class="font-medium text-lg py-1">COLORS</h3>
           <div class="color-picker">
@@ -91,6 +96,9 @@
 
         <button @click="saveColorSettings()">Save Color Settings</button>
 
+      </div>
+
+      <div v-if="currentTab === 'settings'" class="flex flex-col gap-3">
         <div id="network" class="frame-designs">
           <h3 class="font-medium text-lg py-1">NETWORK SETTINGS</h3>
           <div class="ipaddress">
@@ -108,7 +116,6 @@
             <img :src="booth.mainData.homeLogoImage?.src" alt="Logo Preview">
           </div>
         </div>
-
       </div>
     </div>
     <div class="flex gap-3 self-center">
@@ -126,6 +133,7 @@ import { usePhotoboothStore } from '../assets/js/data';
 import "vue3-colorpicker/style.css";
 const booth = ref(null);
 const color = ref('#112357');
+const currentTab = ref('template');
 const nextworkValues = ref({
   ipAddress: undefined
 });
@@ -348,11 +356,13 @@ onMounted(async () => {
 }
 
 .frame-arrow.mdi-chevron-left {
-  left: 5px;
+  left: 0px;
+  background: linear-gradient(to left, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.6));
 }
 
 .frame-arrow.mdi-chevron-right {
-  right: 5px;
+  right: 0px;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.6));
 }
 
 #header-list {
@@ -411,6 +421,29 @@ button {
 #frame-viewer {
   position: relative;
   height: fit-content;
+}
+
+.floating-tabs {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #ffffff;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    box-shadow: 0 0 2px 1px rgba(254, 109, 109, 0.25);
+    overflow: hidden;
+}
+
+.floating-tabs li {
+    padding: 2px 5px;
+    font-size: 25px;
+    color: #fe6d6d;
+}
+
+.floating-tabs li.active {
+    color: #ffffff;
+    background: #fe6d6d
 }
 
 </style>
