@@ -19,39 +19,39 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, watch } from 'vue';
 
-const props = defineProps({
-  timeLeft: Number,
-  imageCount: Number
-})
+const props = defineProps<{
+  timeLeft: number;
+  imageCount: number;
+}>();
 
-const animatedBox = ref(null)
-const animatedProgress = ref(null)
+const animatedBox = ref<HTMLElement | null>(null);
+const animatedProgress = ref<SVGCircleElement | null>(null);
 
 watch(() => props.timeLeft, () => {
-  const el = animatedBox.value
-  const progressEl = animatedProgress.value
-  if (!el || !progressEl) return
+  const el = animatedBox.value;
+  const progressEl = animatedProgress.value;
+  if (!el || !progressEl) return;
 
-  el.style.animation = 'none'
-  progressEl.style.animation = 'none'
+  el.style.animation = 'none';
+  progressEl.style.animation = 'none';
   // trigger reflow to restart the animation
-  void el.offsetWidth // force reflow
-  void progressEl.offsetWidth // force reflow
-  el.style.animation = '' // reset animation
-  progressEl.style.animation = ''
-})
+  void el.offsetWidth; // force reflow
+  void progressEl.offsetWidth; // force reflow
+  el.style.animation = ''; // reset animation
+  progressEl.style.animation = '';
+});
 
-const toOrdinal = (n) => {
+const toOrdinal = (n: number): string => {
   const s = ["th", "st", "nd", "rd"];
   const v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
-}
+};
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .number {
   position: absolute;
   top: 50%;
@@ -66,17 +66,11 @@ const toOrdinal = (n) => {
   -webkit-text-stroke: 2px #333333;
   white-space: pre-line;
   line-height: 0.8;
-}
 
-.small {
-  font-size: 90px !important;
+  &.small {
+    font-size: 90px !important;
+  }
 }
-
-@keyframes scaleFadeOut {
-from {transform: translate(-50%, -50%) scale(0.5); opacity: 0;}
-	to {  transform: translate(-50%, -50%) scale(1.3); opacity: 0.6;}
-}
-
 
 .countdown {
   position: absolute;
@@ -89,18 +83,18 @@ from {transform: translate(-50%, -50%) scale(0.5); opacity: 0;}
   display: flex;
   justify-content: center;
   align-items: center;
-}
 
-.countdown svg {
-  width: 30rem;
-  height: 30rem;
-  transform: rotate(-90deg); /* makes the countdown start at the top */
+  svg {
+    width: 30rem;
+    height: 30rem;
+    transform: rotate(-90deg);
+  }
 }
 
 .border {
   fill: none;
-  stroke: rgba(0, 0, 0, 0.4);         /* border color */
-  stroke-width: 0.7;       /* border thickness */
+  stroke: rgba(0, 0, 0, 0.4);
+  stroke-width: 0.7;
 }
 
 circle {
@@ -116,20 +110,12 @@ circle {
 .progress {
   stroke: rgba(240, 240, 240, 0.4);
   stroke-width: 7;
-  stroke-linecap: butt; /* ← SHARP edge stroke */
-  stroke-dasharray: 283; /* 2πr for r=45 */
+  stroke-linecap: butt;
+  stroke-dasharray: 283;
   stroke-dashoffset: 283;
   animation: countdown 0.9s linear;
 }
 
-/* animation */
-@keyframes countdown {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-/* center number display */
 .time {
   position: absolute;
   font-size: 2rem;
@@ -147,5 +133,4 @@ circle {
   -webkit-text-stroke: 2px #333333;
   opacity: 0.4;
 }
-
 </style>

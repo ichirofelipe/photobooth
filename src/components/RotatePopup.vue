@@ -1,16 +1,16 @@
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue';
 
-const videoRef = ref(null);
+const videoRef = ref<HTMLVideoElement | null>(null);
 
 onMounted(async () => {
   initRotatePhoneVideo();
 });
 
-function initRotatePhoneVideo() {
+function initRotatePhoneVideo(): void {
     const video = videoRef.value;
-    video.playbackRate = 1.25; // PLAY BACK SPEED
     if (!video) return;
+    video.playbackRate = 1.25; // PLAY BACK SPEED
 
     // Initial fade-in
     fadeIn();
@@ -28,13 +28,13 @@ function initRotatePhoneVideo() {
 
 }
 
-function fadeOut() {
+function fadeOut(): void {
     if (videoRef.value) {
         videoRef.value.style.opacity = "0";
     }
 }
 
-function fadeIn() {
+function fadeIn(): void {
     if (videoRef.value) {
         videoRef.value.style.opacity = "1";
     }
@@ -56,15 +56,15 @@ function fadeIn() {
     </div>
 </template>
 
-<style scope>
+<style scoped lang="scss">
 #rotate-popup {
-    position: fixed;
-    width: 100vw;
-    height: 100vh;
-    top: 0;
-    left: 0;
-    background: #000000;
-    z-index: 1000;
+  position: fixed;
+  width: 100vw;
+  height: 100vh;
+  top: 0;
+  left: 0;
+  background: #000000;
+  z-index: 1000;
 }
 
 .video-container {
@@ -82,6 +82,6 @@ function fadeIn() {
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 1s ease; 
+  transition: opacity 1s ease;
 }
 </style>

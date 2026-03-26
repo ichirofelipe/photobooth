@@ -1,53 +1,53 @@
 <template>
   <div>
-    <CaptureTimer v-if="timer" :timeLeft="timeLeft" :imageCount="imageCount"/>
+    <CaptureTimer v-if="timer" :timeLeft="timeLeft" :imageCount="imageCount" />
     <div v-if="Capacitor.getPlatform() === 'web'">
-      <video id="cameraPreviewWeb" ref="videoRef" :class="{shutter: shutterFlag}" autoplay playsinline></video>
+      <video id="cameraPreviewWeb" ref="videoRef" :class="{ shutter: shutterFlag }" autoplay playsinline muted></video>
       <canvas ref="canvasRef" style="display: none;"></canvas>
     </div>
     <div id="UVCcamera_Container" v-else>
       <img
         v-if="UVCSrcRef"
         :src="UVCSrcRef"
-        :class="{shutter: shutterFlag}"
+        :class="{ shutter: shutterFlag }"
         alt="UVC preview"
         id="UVCcamera"
       />
-      <div v-else style="color:black" id="loader">Loading the Camera…</div>
+      <div v-else id="loader">Loading the Camera…</div>
     </div>
   </div>
 </template>
 
-<script setup>
-import CaptureTimer from '../components/CaptureTimer.vue';
-import useCamera from "../assets/js/camera";
+<script setup lang="ts">
+import CaptureTimer from '@/components/CaptureTimer.vue';
+import useCamera from '@/composables/useCamera';
 import { onMounted } from 'vue';
 import { Capacitor } from '@capacitor/core';
 
 const {
-    shutterFlag,
-    timer,
-    timeLeft,
-    videoRef,
-    canvasRef,
-    UVCSrcRef,
-    startCamera,
-    imageCount,
+  shutterFlag,
+  timer,
+  timeLeft,
+  videoRef,
+  canvasRef,
+  UVCSrcRef,
+  startCamera,
+  imageCount,
 } = useCamera();
 
-onMounted( async() => await startCamera());
-
+onMounted(async () => await startCamera());
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 video {
   transform: scaleX(-1);
 }
+
 .shutter {
   animation: shutter 0.75s ease;
 }
 
-#cameraPreviewWeb{
+#cameraPreviewWeb {
   position: fixed;
   width: 90vw;
   height: 100vh;
@@ -55,24 +55,25 @@ video {
   top: 0;
 }
 
-#cameraPreview{
+#cameraPreview {
   position: relative;
   width: 700px;
   top: -95px;
   left: 0;
   background-color: #000;
   pointer-events: none;
-  opacity: .5;
+  opacity: 0.5;
 }
 
-#loader{
+#loader {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  color: black;
 }
 
-#UVCcamera_Container{
+#UVCcamera_Container {
   width: 85%;
   height: 100%;
   position: absolute;
@@ -84,20 +85,11 @@ video {
   justify-content: center;
 }
 
-#UVCcamera{
+#UVCcamera {
   width: auto;
   height: 100%;
   transform: scaleX(-1);
   transform-origin: center;
   object-fit: cover;
-}
-
-@keyframes shutter {
-  from {
-    filter:brightness(0)
-  }
-  to {
-    filter: brightness(1)
-  }
 }
 </style>

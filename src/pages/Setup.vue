@@ -1,148 +1,171 @@
 <template>
-  <div v-if="booth" id="parent">
-    <ul id="floating-tabs" class="floating-tabs">
-      <li :class="{active: currentTab === 'template'}"><i @click="currentTab = 'template'" class="mdi mdi-view-grid"></i></li>
-      <li :class="{active: currentTab === 'settings'}"><i @click="currentTab = 'settings'" class="mdi mdi-cog"></i></li>
+  <div v-if="designStore" id="parent">
+    <ul class="floating-tabs">
+      <li :class="{ active: currentTab === 'template' }">
+        <i @click="currentTab = 'template'" class="mdi mdi-view-grid"></i>
+      </li>
+      <li :class="{ active: currentTab === 'settings' }">
+        <i @click="currentTab = 'settings'" class="mdi mdi-cog"></i>
+      </li>
     </ul>
 
-    <h1 class="whitespace-nowrap tracking-wider">
-      Setup
-      <!-- Tokyo -->
-    </h1>
+    <h1 class="whitespace-nowrap tracking-wider">Setup</h1>
 
     <div id="frame-editor" class="flex gap-x-3 mx-auto">
-      <div v-if="currentTab === 'template'" id="frame-viewer" class="">
-        <i @click="booth.setFrame('prev')" class="frame-arrow mdi mdi-chevron-left"></i>
-        <i @click="booth.setFrame('next')" class="frame-arrow mdi mdi-chevron-right"></i>
-        <v-stage ref="stageRef" :config="{width: responsiveWidth, height: responsiveHeight}">
+      <!-- Template Tab -->
+      <div v-if="currentTab === 'template'" id="frame-viewer">
+        <i @click="designStore.setFrame('prev')" class="frame-arrow mdi mdi-chevron-left"></i>
+        <i @click="designStore.setFrame('next')" class="frame-arrow mdi mdi-chevron-right"></i>
+        <v-stage ref="stageRef" :config="{ width: responsiveWidth, height: responsiveHeight }">
           <v-layer>
-            <!-- BASE -->
-            <v-rect :config="{width: responsiveWidth, height: responsiveHeight, fill: 'white'}" />
+            <v-rect :config="{ width: responsiveWidth, height: responsiveHeight, fill: 'white' }" />
           </v-layer>
-          <v-layer ref="layerRef" :config="booth.currentTemplate.frameData">
-            <!-- FRAME -->
+          <v-layer ref="layerRef" :config="designStore.currentTemplate.frameData">
             <v-rect v-if="getFrameConfig()" :config="getFrameConfig()" />
-
-            <v-rect v-if="getHeaderConfig()" :config="getHeaderConfig()"/>
-
-            <v-rect v-if="getFooterConfig()" :config="getFooterConfig()"/>
-            <!-- User Images -->
-            <template v-if="booth.loadedTestImages.length">
+            <v-rect v-if="getHeaderConfig()" :config="getHeaderConfig()" />
+            <v-rect v-if="getFooterConfig()" :config="getFooterConfig()" />
+            <template v-if="designStore.loadedTestImages.length">
               <v-rect
-                v-for="(imgData, index) in booth.getImagesForCurrentTemplate()"
+                v-for="(imgData, index) in designStore.getImagesForCurrentTemplate(appStore.selectedVariation)"
                 :key="index"
                 :config="getImageConfig(imgData, index)"
               />
             </template>
-
             <v-text
               v-else
-              :config="{
-                text: 'Loading Images...',
-                x: 10,
-                y: 10,
-                fontSize: 20,
-                fill: 'black'
-              }"
+              :config="{ text: 'Loading Images...', x: 10, y: 10, fontSize: 20, fill: 'black' }"
             />
-
           </v-layer>
         </v-stage>
       </div>
 
+      <!-- Template Tab Sidebar -->
       <div v-if="currentTab === 'template'" class="flex flex-col gap-3">
-        <div id="frames" class="frame-designs">
+        <div class="frame-designs">
           <h3 class="font-medium text-lg py-1">COLORS</h3>
           <div class="color-picker">
             <ColorPicker v-model:pure-color="color" format="hex" />
-            <input type="text" :value="color">
+            <input type="text" :value="color" />
             <button @click="addColor(color)">add</button>
           </div>
-          <ul id="design-list" class="frame-options grid grid grid-cols-4 gap-2 scrollbar">
-            <li 
-              v-for="(color, index) in booth.mainData.colorData" class="option color col-span-1" :class="[verifyColor(index), {selected: booth.selectedColorIndex === index}]" @click="booth.setColor(index)">
-              <div :style="'background:'+color.hex"></div>
+          <ul class="frame-options grid grid-cols-4 gap-2 scrollbar">
+            <li
+              v-for="(colorItem, index) in designStore.mainData.colorData"
+              :key="index"
+              class="option color col-span-1"
+              :class="[
+                verifyColor(index),
+                { selected: designStore.selectedColorIndex === index },
+              ]"
+              @click="designStore.setColor(index)"
+            >
+              <div :style="'background:' + colorItem.hex"></div>
               <span class="text" v-if="verifyColor(index) === 'no-data'"></span>
             </li>
           </ul>
-          <button @click="deleteColor()" :class="{disabled: booth.selectedColorIndex === null}">Delete Color</button>
+          <button
+            @click="deleteColor()"
+            :class="{ disabled: designStore.selectedColorIndex === null }"
+          >
+            Delete Color
+          </button>
         </div>
 
-        <div id="frames" class="frame-designs" :class="{disabled: verifyUploads()}">
+        <div class="frame-designs" :class="{ disabled: verifyUploads() }">
           <h3 class="font-medium text-lg py-1">HEADER</h3>
           <div class="uploader">
             <input type="file" multiple accept="image/*" @change="onFileChange($event, 'header')" />
             <button @click="uploadImages('header')">upload</button>
           </div>
-          <ul id="header-list" class="grid grid grid-cols-2 scrollbar">
-            <li v-for="(names, index) in booth.mainData.headerData" class="col-span-1" :class="{selected: booth.selectedHeaderIndex === index}" @click="booth.setHeader(index)">
-              <div>{{ names }}</div>
+          <ul class="header-list grid grid-cols-2 scrollbar">
+            <li
+              v-for="(name, index) in designStore.mainData.headerData"
+              :key="index"
+              class="col-span-1"
+              :class="{ selected: designStore.selectedHeaderIndex === index }"
+              @click="designStore.setHeader(index)"
+            >
+              <div>{{ name }}</div>
             </li>
           </ul>
         </div>
 
-        <div id="frames" class="frame-designs" :class="{disabled: verifyUploads()}">
+        <div class="frame-designs" :class="{ disabled: verifyUploads() }">
           <h3 class="font-medium text-lg py-1">FOOTER</h3>
           <div class="uploader">
             <input type="file" multiple accept="image/*" @change="onFileChange($event, 'footer')" />
             <button @click="uploadImages('footer')">upload</button>
           </div>
-          <ul id="header-list" class="grid grid grid-cols-2 scrollbar">
-            <li v-for="(names, index) in booth.mainData.footerData" class="col-span-1" :class="{selected: booth.selectedFooterIndex === index}" @click="booth.setFooter(index)">
-              <div>{{ names }}</div>
+          <ul class="header-list grid grid-cols-2 scrollbar">
+            <li
+              v-for="(name, index) in designStore.mainData.footerData"
+              :key="index"
+              class="col-span-1"
+              :class="{ selected: designStore.selectedFooterIndex === index }"
+              @click="designStore.setFooter(index)"
+            >
+              <div>{{ name }}</div>
             </li>
           </ul>
         </div>
 
         <button @click="saveColorSettings()">Save Color Settings</button>
-
       </div>
 
+      <!-- Settings Tab -->
       <div v-if="currentTab === 'settings'" class="flex flex-col gap-3">
-        <div id="network" class="frame-designs">
+        <div class="frame-designs">
           <h3 class="font-medium text-lg py-1">NETWORK SETTINGS</h3>
-          <div class="ipaddress">
-            <input placeholder="IP ADDRESS" type="text" @input="onInputSetupText('ipAddress', $event)" :value="nextworkValues.ipAddress??booth.networkData['ipAddress']">
+          <div class="network-input">
+            <input
+              placeholder="IP ADDRESS"
+              type="text"
+              @input="onInputSetupText('ipAddress', $event)"
+              :value="networkStore.networkData['ipAddress']"
+            />
           </div>
         </div>
 
-        <div id="frames" class="frame-designs">
+        <div class="frame-designs">
           <h3 class="font-medium text-lg py-1">HOME LOGO</h3>
           <div class="uploader">
             <input type="file" accept="image/*" @change="onFileChange($event, 'homeLogo')" />
             <button @click="uploadImages('homeLogo', false)">upload</button>
           </div>
-          <div id="logo-preview" v-if="booth.mainData.homeLogoImage?.src">
-            <img :src="booth.mainData.homeLogoImage?.src" alt="Logo Preview">
+          <div class="logo-preview" v-if="designStore.mainData.homeLogoImage?.src">
+            <img :src="designStore.mainData.homeLogoImage?.src" alt="Logo Preview" />
           </div>
         </div>
       </div>
     </div>
+
     <div class="flex gap-3 self-center">
       <button class="pb-button p-5" @click="resetSetup()">RESET</button>
-      <router-link v-if="booth.mainData.colorData?.length > 0" to="/" class="pb-button p-5">DONE</router-link>
+      <router-link v-if="designStore.mainData.colorData?.length > 0" to="/" class="pb-button p-5">DONE</router-link>
     </div>
   </div>
 </template>
 
-<script setup>
-import useSetup from "../assets/js/setup";
-import { ref, onMounted } from 'vue'
-import { ColorPicker } from "vue3-colorpicker";
-import { usePhotoboothStore } from '../assets/js/data';
-import "vue3-colorpicker/style.css";
-const booth = ref(null);
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { ColorPicker } from 'vue3-colorpicker';
+import 'vue3-colorpicker/style.css';
+import { useAppStore } from '@/stores/appStore';
+import { useDesignStore } from '@/stores/designStore';
+import { useNetworkStore } from '@/stores/networkStore';
+import useSetup from '@/composables/useSetup';
+
+const appStore = useAppStore();
+const designStore = ref<ReturnType<typeof useDesignStore> | null>(null);
+const networkStore = useNetworkStore();
 const color = ref('#112357');
-const currentTab = ref('template');
-const nextworkValues = ref({
-  ipAddress: undefined
-});
+const currentTab = ref<'template' | 'settings'>('template');
+
 const {
   responsiveWidth,
   responsiveHeight,
   getFrameConfig,
   getImageConfig,
-  frameData,
   layerRef,
   getFooterConfig,
   getHeaderConfig,
@@ -153,189 +176,46 @@ const {
   uploadImages,
   onFileChange,
   resetSetup,
-  onInputSetupText
+  onInputSetupText,
 } = useSetup();
 
-function verifyUploads() {
-  console.log('booth.selectedColorIndex', verifyColor(booth.value.selectedColorIndex));
-  if(!booth.value.selectedColorIndex === null) return;
-  return verifyColor(booth.value.selectedColorIndex) !== 'no-data' || !booth.value.selectedColorIndex;
+function verifyUploads(): boolean {
+  if (designStore.value!.selectedColorIndex === null) return true;
+  return verifyColor(designStore.value!.selectedColorIndex) !== 'no-data' || !designStore.value!.selectedColorIndex;
 }
 
 onMounted(async () => {
-  booth.value = usePhotoboothStore();
+  designStore.value = useDesignStore();
 });
-
 </script>
 
-<style scoped>
-.konvajs-content {
-  margin: 0 auto;
-}
-.konvajs-content canvas{
-  box-shadow: inset 0 0px 8px rgba(0, 0, 0, 0.3);
-  border-radius: 5px;
-}
+<style lang="scss">
+@use '@/assets/scss/frame-editor';
+</style>
 
-.disabled {
-  pointer-events: none;
-  filter: brightness(0.5);
-}
+<style scoped lang="scss">
+@use '@/assets/scss/variables' as *;
+@use '@/assets/scss/mixins' as *;
 
-.frame-designs {
-  max-width: 50em;
-  width: 100%;
-  box-shadow: inset 0 0px 8px rgba(0, 0, 0, 0.3);
-  background-color: #ffffff;
-  border-radius: 5px;
+#frame-viewer {
+  position: relative;
   height: fit-content;
-  padding: 10px 0;
 }
 
-.frame-designs h3 {
-  padding-top: 0px;
-}
-
-.frame-designs > button {
-  padding: 5px !important;
-  width: 30%;
-  border-radius: 5px !important;
-}
-
-.frame-options {
-    overflow-y: auto;
-    max-height: 13em;
-    padding: 15px;
-    min-width: 20em;
-}
-
-.frame-options::-webkit-scrollbar {
-    width: 10px;
-}
-        
-.frame-options::-webkit-scrollbar-track {
-    background-color: transparent;
-    border: 1.5px solid #7e7e7e;
-    border-radius: 8px;
-}
-        
-.frame-options::-webkit-scrollbar-thumb {
-    background-color: #f1f1f1;
-    border: 2px solid #616161;
-    border-radius: 8px;
-}
-
-.option {
-  height: 5em;
-  background: #ffffff;
-  cursor: pointer;
-  border-radius: 3px;
-  position: relative;
-  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.9),
-              0 2px 6px rgba(0, 0, 0, 0.5);
-}
-
-.option:not(.color) {
-  filter: brightness(0.7);
-}
-
-.option:not(.color):hover {
-  filter: brightness(1.2);
-}
-
-.option:not(.color).selected {
-  filter: brightness(1.2);
-}
-
-.option:not(.color).selected img {
-  padding: 3px;
-  background-color: #000;
-}
-
-.option.color:hover {
-  box-shadow: 0 0 0 2px white, 0 0 0 4px rgb(90, 90, 90);
-}
-
-.option.color.selected {
-  box-shadow: 0 0 0 2px white, 0 0 0 4px rgb(90, 90, 90);
-}
-
-.option.color.no-data
-{
-  position: relative;
-}
-
-.option.color.no-data .text {
-  position: absolute;
-  height: 100%;
-  width: 100%;
-  top: 0;
-  left: 0;
-  background: rgba(0, 0, 0, 0.75);
-}
-
-.option.color.no-data .text::after {
-  width: 100%;
-  text-align: center;
-  content: "Set a Data";
-  position: absolute;
-  color: #ffffff;
-  top: 50%;
-  left: 0;
-  transform: translateY(-50%);
-  font-size: 0.8em;
-}
-
-.option > * {
-  height: 100%;
-  max-width: 100%;
-  object-fit: cover;
-  border-radius: 3px;
-}
-
-.variation-option {
-  cursor: pointer;
-  filter: brightness(0.7);
-}
-
-.variation-option img {
-  max-height: 100px;
-  max-width: 6.5em;
-  transform: rotateZ(-7deg);
+.color-picker,
+.uploader {
+  display: flex;
+  border: 1px solid $border-color;
+  border-radius: 5px;
+  overflow: hidden;
+  width: calc(100% - 25px);
   margin: 0 auto;
-  filter: drop-shadow(2px 2px 3px #666);
-}
-
-.variation-option.selected, .variation-option:hover {
-  filter: brightness(1) drop-shadow(2px 2px 3px #666);
-  transition: 0.5s;
-}
-
-.color-picker, .uploader {
-    display: flex;
-    border: 1px solid #999;
-    border-radius: 5px;
-    overflow: hidden;
-    width: calc(100% - 25px);
-    margin: 0 auto;
 }
 
 .color-picker .vc-color-wrap {
-    margin: 0;
-    box-shadow: none;
-    width: 70px;
-}
-
-.frame-designs input {
-    width: 100%;
-    padding: 0 5px;
-}
-
-.frame-designs button {
-    padding: 0 10px;
-    color: #eee;
-    font-size: 12px;
-    border-radius: 0;
+  margin: 0;
+  box-shadow: none;
+  width: 70px;
 }
 
 .frame-arrow {
@@ -348,102 +228,90 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* border: 1px solid #ccc;
-  border-radius: 100%; */
   cursor: pointer;
   color: black;
   font-size: 5vh;
+
+  &.mdi-chevron-left {
+    left: 0;
+    background: linear-gradient(to left, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.6));
+  }
+
+  &.mdi-chevron-right {
+    right: 0;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.6));
+  }
 }
 
-.frame-arrow.mdi-chevron-left {
-  left: 0px;
-  background: linear-gradient(to left, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.6));
-}
-
-.frame-arrow.mdi-chevron-right {
-  right: 0px;
-  background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.6));
-}
-
-#header-list {
+.header-list {
   padding-top: 10px;
   row-gap: 5px;
-}
 
-#header-list > li {
-  border: 1px solid #999;
-  border-radius: 5px;
-  overflow: hidden;
-  width: calc(100% - 25px);
-  margin: 0 auto;
-  display: -webkit-box;
-  -webkit-line-clamp: 1; /* number of lines */
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-align: left;
-  padding: 0 5px;
-  font-size: 12px;
-  position: relative;
-}
+  > li {
+    border: 1px solid $border-color;
+    border-radius: 5px;
+    overflow: hidden;
+    width: calc(100% - 25px);
+    margin: 0 auto;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-align: left;
+    padding: 0 5px;
+    font-size: 12px;
+    position: relative;
 
-#header-list > li span {
-  position: absolute;
-  right: 5px;
-  top: 0;
-}
-
-button {
-  color: #ffffff;
+    span {
+      position: absolute;
+      right: 5px;
+      top: 0;
+    }
+  }
 }
 
 .uploader ~ ul > li.selected {
   background: #666;
-  color: #fff;
+  color: $white;
 }
 
-#network input {
+.network-input input {
   width: 95%;
   padding: 5px;
-  border: 1px solid #999;
+  border: 1px solid $border-color;
   border-radius: 5px;
 }
 
-#logo-preview {
+.logo-preview {
   margin-top: 10px;
   display: flex;
   justify-content: center;
-}
 
-#logo-preview img {
-  width: 100px;
-}
-
-#frame-viewer {
-  position: relative;
-  height: fit-content;
+  img {
+    width: 100px;
+  }
 }
 
 .floating-tabs {
-    position: fixed;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    background: #ffffff;
-    border-top-left-radius: 5px;
-    border-bottom-left-radius: 5px;
-    box-shadow: 0 0 2px 1px rgba(254, 109, 109, 0.25);
-    overflow: hidden;
-}
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: $white;
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
+  box-shadow: 0 0 2px 1px rgba($primary-color, 0.25);
+  overflow: hidden;
 
-.floating-tabs li {
+  li {
     padding: 2px 5px;
     font-size: 25px;
-    color: #fe6d6d;
-}
+    color: $primary-color;
 
-.floating-tabs li.active {
-    color: #ffffff;
-    background: #fe6d6d
+    &.active {
+      color: $white;
+      background: $primary-color;
+    }
+  }
 }
-
 </style>

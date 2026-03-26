@@ -1,0 +1,22 @@
+@mixin custom-scrollbar($width: 10px) {
+  &::-webkit-scrollbar {
+    width: $width;
+  }
+
+  &::-webkit-scrollbar-track {
+    background-color: transparent;
+    border: 1.5px solid #7e7e7e;
+    border-radius: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #f1f1f1;
+    border: 2px solid #616161;
+    border-radius: 8px;
+  }
+}
+
+@mixin disabled-state {
+  pointer-events: none;
+  filter: brightness(0.5);
+}

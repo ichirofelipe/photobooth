@@ -1,8 +1,46 @@
-<script setup>
-import { ArrowUturnLeftIcon } from "@heroicons/vue/24/solid";
-import usePhotoboothApp from "./assets/js/global";
-import RotatePopup from "./components/RotatePopup.vue";
-const { goBack, isPortrait } = usePhotoboothApp();
+<script setup lang="ts">
+import { computed, onMounted, onBeforeUnmount } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { ArrowUturnLeftIcon } from '@heroicons/vue/24/solid';
+import RotatePopup from './components/RotatePopup.vue';
+import useOrientation from './composables/useOrientation';
+import useNavigation from './composables/useNavigation';
+import { useNetworkStore } from './stores/networkStore';
+
+const route = useRoute();
+const router = useRouter();
+const networkStore = useNetworkStore();
+const { isPortrait } = useOrientation();
+const { goBack } = useNavigation();
+
+const hasBackArrow = computed(() => {
+  return route.fullPath !== '/' && route.fullPath !== '/setup';
+});
+
+let pollInterval: ReturnType<typeof setInterval> | undefined;
+
+onMounted(async () => {
+  await networkStore.load();
+});
+
+onBeforeUnmount(() => {
+  clearInterval(pollInterval);
+});
+
+async function checkSetupFlag(): Promise<void> {
+  try {
+    if (!networkStore.networkData.ipAddress) {
+      router.push('/setup');
+    }
+    const res = await fetch(`http://${networkStore.networkData.ipAddress}:3000/setup-status`);
+    const json = await res.json();
+    if (json.setup) {
+      router.push('/setup');
+    }
+  } catch (err) {
+    console.log('Polling error', err);
+  }
+}
 </script>
 
 <template>
@@ -17,59 +55,17 @@ const { goBack, isPortrait } = usePhotoboothApp();
   </transition>
 </template>
 
-<script>
-import { usePhotoboothStore } from './assets/js/data';
-let booth;
-export default {
-  computed: {
-    hasBackArrow() {
-      return this.$route.fullPath !== "/"
-      && this.$route.fullPath !== "/setup";
-    }
-  },
-
-  async mounted() {
-    booth = usePhotoboothStore();
-    await booth.loadNetworkData();
-    console.log("Polling started!", booth.networkData);
-    // this.pollInterval = setInterval(this.checkSetupFlag, 3000);
-  },
-
-  beforeUnmount() {
-    clearInterval(this.pollInterval);
-  },
-
-  methods: {
-    async checkSetupFlag() {
-      try {
-        if (!booth.networkData.ipAddress) {
-          this.$router.push("/setup");
-        }
-        console.log("Polling setup status...", booth.networkData.ipAddress);
-        const res = await fetch(`http://${booth.networkData.ipAddress}:3000/setup-status`);
-        const json = await res.json();
-
-        if (json.setup) {
-          this.$router.push("/setup");
-        }
-      } catch (err) {
-        console.log("Polling error", err);
-      }
-    }
-  }
-};
-
-</script>
-
-<style scoped>
+<style scoped lang="scss">
 .slide-enter-active,
 .slide-leave-active {
   transition: all 0.3s ease;
 }
+
 .slide-enter-from {
   opacity: 0;
   transform: translateY(30px);
 }
+
 .slide-leave-to {
   opacity: 0;
   transform: translateY(-30px);

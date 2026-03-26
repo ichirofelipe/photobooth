@@ -1,7 +1,7 @@
 import { App as CapApp } from '@capacitor/app';
 import { UvcCameraPlugin } from '@/plugins/UvcCameraPlugin';
 
-export function registerCapacitorListeners() {
+export function registerCapacitorListeners(): void {
   CapApp.addListener('appStateChange', async ({ isActive }) => {
     if (!isActive) return;
 

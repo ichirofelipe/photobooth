@@ -1,8 +1,7 @@
 <template>
   <div class="flex flex-col h-full justify-between">
     <div></div>
-    <img v-if="booth.mainData?.homeLogoImage?.src" id="logo" :src="booth.mainData?.homeLogoImage?.src" alt="PRIM Photobooth">
-    <!-- <h1 class="text-7xl font-bold tracking-widest">LOGO</h1> -->
+    <img v-if="designStore.mainData?.homeLogoImage?.src" id="logo" :src="designStore.mainData?.homeLogoImage?.src" alt="PRIM Photobooth">
     <p id="touchtostart" class="text-2xl uppercase whitespace-nowrap tracking-wider">Touch anywhere to start</p>
   </div>
   <router-link v-if="isActivate" to="/templates" class="absolute w-screen h-screen top-0 left-0"></router-link>
@@ -20,19 +19,13 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from "vue";
-import useDeviceKey from '@/assets/js/deviceKey';
-import { usePhotoboothStore } from '../assets/js/data';
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import useDeviceKey from '@/composables/useDeviceKey';
+import { useDesignStore } from '@/stores/designStore';
 
-const booth = usePhotoboothStore();
-const licenseKey = ref("");
-
-onMounted(async () => {
-    await checkActivation();
-    await fetchDeviceId();
-    await booth.reloadMainData();
-});
+const designStore = useDesignStore();
+const licenseKey = ref('');
 
 const {
   isActivate,
@@ -40,18 +33,26 @@ const {
   validateKey,
   checkActivation,
   fetchDeviceId,
-  errors
+  errors,
 } = useDeviceKey();
 
+onMounted(async () => {
+  await checkActivation();
+  await fetchDeviceId();
+  await designStore.reloadMainData();
+});
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@use '@/assets/scss/variables' as *;
+
 #logo {
   width: auto;
   max-width: 50vw;
   max-height: 70vh;
   margin: 0 auto;
 }
+
 #touchtostart {
   font-size: 30px;
   text-align: center;
@@ -85,17 +86,5 @@ const {
   font-size: 12px;
   margin-top: 4px;
   text-align: left;
-}
-
-@keyframes fadePulse {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 1; }
-}
-@keyframes scalePulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-}
-@keyframes shimmer {
-  to { background-position: 200% center; }
 }
 </style>

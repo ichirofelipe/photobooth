@@ -1,11 +1,11 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 import Home from '../pages/Start.vue';
 import Template from '../pages/TemplateSelection.vue';
 import Camera from '../pages/Camera.vue';
 import Design from '../pages/Design.vue';
 import Setup from '../pages/Setup.vue';
 
-const routes = [
+const routes: RouteRecordRaw[] = [
   { path: '/', name: 'Home', component: Home },
   { path: '/templates', name: 'Template', component: Template },
   { path: '/camera', name: 'Camera', component: Camera },
