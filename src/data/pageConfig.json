@@ -19,6 +19,11 @@
             "name": "Design",
             "backLink": "/templates",
             "resetData": false
+        },
+        {
+            "name": "TemplateEditor",
+            "backLink": "/setup",
+            "resetData": false
         }
     ]
 }

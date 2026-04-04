@@ -20,6 +20,7 @@ export interface DesignData {
 
 export interface NetworkData {
   ipAddress: string;
+  qrEnabled: boolean;
 }
 
 // ---- Frame & Template ----
@@ -119,6 +120,12 @@ export interface UploadData {
   headerData: FileList | File[];
   footerData: FileList | File[];
   homeLogoData: FileList | File[] | null;
+}
+
+// ---- Template Config (active selection) ----
+
+export interface TemplateConfig {
+  activeIndices: number[];
 }
 
 // ---- Frame Config Options ----

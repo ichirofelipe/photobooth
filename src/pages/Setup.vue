@@ -113,12 +113,26 @@
       </div>
 
       <!-- Settings Tab -->
-      <div v-if="currentTab === 'settings'" class="flex flex-col gap-3">
-        <div class="frame-designs">
-          <h3 class="font-medium text-lg py-1">NETWORK SETTINGS</h3>
-          <div class="network-input">
+      <div v-if="currentTab === 'settings'" class="settings-panel">
+        <div class="settings-card">
+          <h3 class="settings-heading"><i class="mdi mdi-puzzle-outline"></i> Template Management</h3>
+          <div class="template-manage">
+            <p class="template-manage-info">
+              {{ templateStore.allFrames.length }} templates · {{ templateStore.activeIndices.length }} active
+            </p>
+            <router-link to="/template-editor" class="manage-templates-btn">
+              <i class="mdi mdi-pencil-ruler"></i> Manage Templates
+            </router-link>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h3 class="settings-heading"><i class="mdi mdi-wifi"></i> Network Settings</h3>
+          <div class="settings-field">
+            <label class="settings-label">Printer IP Address</label>
             <input
-              placeholder="IP ADDRESS"
+              class="settings-input"
+              placeholder="e.g. 192.168.1.100"
               type="text"
               @input="onInputSetupText('ipAddress', $event)"
               :value="networkStore.networkData['ipAddress']"
@@ -126,11 +140,26 @@
           </div>
         </div>
 
-        <div class="frame-designs">
-          <h3 class="font-medium text-lg py-1">HOME LOGO</h3>
-          <div class="uploader">
+        <div class="settings-card">
+          <h3 class="settings-heading"><i class="mdi mdi-qrcode"></i> QR Code Soft Copy</h3>
+          <div class="toggle-row">
+            <span class="toggle-label">Enable QR download for guests</span>
+            <label class="toggle-switch">
+              <input
+                type="checkbox"
+                :checked="networkStore.networkData.qrEnabled"
+                @change="networkStore.updateField('qrEnabled', ($event.target as HTMLInputElement).checked)"
+              />
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h3 class="settings-heading"><i class="mdi mdi-image-outline"></i> Home Logo</h3>
+          <div class="settings-upload">
             <input type="file" accept="image/*" @change="onFileChange($event, 'homeLogo')" />
-            <button @click="uploadImages('homeLogo', false)">upload</button>
+            <button @click="uploadImages('homeLogo', false)"><i class="mdi mdi-upload"></i> Upload</button>
           </div>
           <div class="logo-preview" v-if="designStore.mainData.homeLogoImage?.src">
             <img :src="designStore.mainData.homeLogoImage?.src" alt="Logo Preview" />
@@ -140,8 +169,8 @@
     </div>
 
     <div class="flex gap-3 self-center">
-      <button class="pb-button p-5" @click="resetSetup()">RESET</button>
-      <router-link v-if="designStore.mainData.colorData?.length > 0" to="/" class="pb-button p-5">DONE</router-link>
+      <button class="pb-button p-5" @click="resetSetup()"><i class="mdi mdi-refresh"></i> RESET</button>
+      <router-link v-if="designStore.mainData.colorData?.length > 0" to="/" class="pb-button p-5"><i class="mdi mdi-check"></i> DONE</router-link>
     </div>
   </div>
 </template>
@@ -153,11 +182,13 @@ import 'vue3-colorpicker/style.css';
 import { useAppStore } from '@/stores/appStore';
 import { useDesignStore } from '@/stores/designStore';
 import { useNetworkStore } from '@/stores/networkStore';
+import { useTemplateStore } from '@/stores/templateStore';
 import useSetup from '@/composables/useSetup';
 
 const appStore = useAppStore();
 const designStore = ref<ReturnType<typeof useDesignStore> | null>(null);
 const networkStore = useNetworkStore();
+const templateStore = useTemplateStore();
 const color = ref('#112357');
 const currentTab = ref<'template' | 'settings'>('template');
 
@@ -186,6 +217,7 @@ function verifyUploads(): boolean {
 
 onMounted(async () => {
   designStore.value = useDesignStore();
+  await designStore.value.init();
 });
 </script>
 
@@ -289,6 +321,137 @@ onMounted(async () => {
 
   img {
     width: 100px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// ==================== SETTINGS PANEL ====================
+.settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 480px;
+  width: 100%;
+}
+
+.settings-card {
+  background: $white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  padding: 18px 22px;
+  transition: box-shadow 0.2s;
+
+  &:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+}
+
+.settings-heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: $dark;
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+
+  i {
+    font-size: 20px;
+    color: $secondary-color;
+  }
+}
+
+.settings-field {
+  padding: 0 2px;
+}
+
+.settings-label {
+  display: block;
+  font-size: 12px;
+  color: $border-color;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.settings-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #fafafa;
+
+  &:focus {
+    outline: none;
+    border-color: $secondary-color;
+    box-shadow: 0 0 0 3px rgba($secondary-color, 0.12);
+    background: $white;
+  }
+}
+
+.settings-upload {
+  display: flex;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+
+  input[type="file"] {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 13px;
+    border: none;
+    background: #fafafa;
+  }
+
+  button {
+    border-radius: 0 8px 8px 0;
+    padding: 8px 16px;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+}
+
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.template-manage {
+  padding: 4px 0;
+  text-align: center;
+}
+
+.template-manage-info {
+  font-size: 13px;
+  color: $border-color;
+  margin-bottom: 10px;
+}
+
+.manage-templates-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  background: $secondary-color;
+  color: $white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+
+  &:hover {
+    filter: brightness(1.15);
+    color: $white;
   }
 }
 
@@ -298,20 +461,84 @@ onMounted(async () => {
   top: 50%;
   transform: translateY(-50%);
   background: $white;
-  border-top-left-radius: 5px;
-  border-bottom-left-radius: 5px;
-  box-shadow: 0 0 2px 1px rgba($primary-color, 0.25);
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
   overflow: hidden;
+  z-index: 10;
 
   li {
-    padding: 2px 5px;
-    font-size: 25px;
-    color: $primary-color;
+    padding: 6px 8px;
+    font-size: 24px;
+    color: $secondary-color;
+    cursor: pointer;
+    transition: all 0.2s ease;
 
     &.active {
       color: $white;
-      background: $primary-color;
+      background: $secondary-color;
+    }
+
+    &:hover:not(.active) {
+      background: rgba($secondary-color, 0.08);
     }
   }
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 15px;
+}
+
+.toggle-label {
+  font-size: 14px;
+  color: $dark;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+
+  input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: $border-color;
+  border-radius: 26px;
+  transition: 0.3s;
+
+  &::before {
+    content: '';
+    position: absolute;
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: $white;
+    border-radius: 50%;
+    transition: 0.3s;
+  }
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: $secondary-color;
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(22px);
 }
 </style>

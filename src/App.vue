@@ -1,46 +1,39 @@
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { computed, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
+import { Capacitor } from '@capacitor/core';
 import { ArrowUturnLeftIcon } from '@heroicons/vue/24/solid';
 import RotatePopup from './components/RotatePopup.vue';
 import useOrientation from './composables/useOrientation';
 import useNavigation from './composables/useNavigation';
+import usePermissions from './composables/usePermissions';
 import { useNetworkStore } from './stores/networkStore';
+import { PhotoServer } from './plugins/photo-server';
 
 const route = useRoute();
-const router = useRouter();
 const networkStore = useNetworkStore();
 const { isPortrait } = useOrientation();
 const { goBack } = useNavigation();
+const { requestAllPermissions } = usePermissions();
 
 const hasBackArrow = computed(() => {
-  return route.fullPath !== '/' && route.fullPath !== '/setup';
+  return route.fullPath !== '/' && route.fullPath !== '/setup' && route.fullPath !== '/qr';
 });
-
-let pollInterval: ReturnType<typeof setInterval> | undefined;
 
 onMounted(async () => {
   await networkStore.load();
-});
+  await requestAllPermissions();
 
-onBeforeUnmount(() => {
-  clearInterval(pollInterval);
-});
-
-async function checkSetupFlag(): Promise<void> {
-  try {
-    if (!networkStore.networkData.ipAddress) {
-      router.push('/setup');
+  // Start the embedded photo server on Android
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const result = await PhotoServer.startServer({ port: 8080 });
+      console.log('PhotoServer started:', result.url);
+    } catch (err) {
+      console.warn('PhotoServer failed to start:', err);
     }
-    const res = await fetch(`http://${networkStore.networkData.ipAddress}:3000/setup-status`);
-    const json = await res.json();
-    if (json.setup) {
-      router.push('/setup');
-    }
-  } catch (err) {
-    console.log('Polling error', err);
   }
-}
+});
 </script>
 
 <template>

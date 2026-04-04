@@ -7,6 +7,7 @@ interface AppState {
   selectedVariation: number;
   selectedDesign: number;
   uploadedImages: UploadedImage[];
+  pendingQrBase64: string | null;
 }
 
 export const useAppStore = defineStore('app', {
@@ -15,6 +16,7 @@ export const useAppStore = defineStore('app', {
     selectedVariation: 0,
     selectedDesign: 0,
     uploadedImages: [],
+    pendingQrBase64: null,
   }),
 
   actions: {
@@ -44,6 +46,7 @@ export const useAppStore = defineStore('app', {
       this.selectedVariation = 0;
       this.uploadedImages = [];
       this.selectedDesign = 0;
+      this.pendingQrBase64 = null;
     },
   },
 });

@@ -5,6 +5,7 @@ import type { DeviceKeyErrors } from '@/types';
 
 interface DeviceKeyReturn {
   isActivate: Ref<boolean>;
+  isCheckingActivation: Ref<boolean>;
   deviceId: Ref<string | undefined>;
   validateKey: (key: string) => Promise<void>;
   checkActivation: () => Promise<void>;
@@ -14,6 +15,7 @@ interface DeviceKeyReturn {
 
 export default function useDeviceKey(): DeviceKeyReturn {
   const isActivate = ref(false);
+  const isCheckingActivation = ref(true);
   const deviceId = ref<string | undefined>();
   const errors = ref<DeviceKeyErrors>({ licenseKey: null });
 
@@ -29,13 +31,18 @@ export default function useDeviceKey(): DeviceKeyReturn {
   };
 
   const checkActivation = async (): Promise<void> => {
-    if (Capacitor.getPlatform() === 'web') {
-      isActivate.value = true;
-      return;
-    }
+    isCheckingActivation.value = true;
+    try {
+      if (Capacitor.getPlatform() === 'web') {
+        isActivate.value = true;
+        return;
+      }
 
-    const result = await DeviceKey.isActivated();
-    isActivate.value = result.activated;
+      const result = await DeviceKey.isActivated();
+      isActivate.value = result.activated;
+    } finally {
+      isCheckingActivation.value = false;
+    }
   };
 
   const fetchDeviceId = async (): Promise<void> => {
@@ -45,6 +52,7 @@ export default function useDeviceKey(): DeviceKeyReturn {
 
   return {
     isActivate,
+    isCheckingActivation,
     deviceId,
     validateKey,
     checkActivation,

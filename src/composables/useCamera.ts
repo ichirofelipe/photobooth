@@ -23,7 +23,6 @@ export default function useCamera(): CameraReturn {
   const videoRef = ref<HTMLVideoElement | null>(null);
   const canvasRef = ref<HTMLCanvasElement | null>(null);
   const UVCSrcRef = ref('');
-  const loaderDelay = 5000;
   const duration = 8;
   const timeLeft = ref(duration);
   const stopCameraPage = ['Home', 'Template'];
@@ -44,8 +43,16 @@ export default function useCamera(): CameraReturn {
         stream = await navigator.mediaDevices.getUserMedia({ video: true });
         if (videoRef.value) {
           videoRef.value.srcObject = stream;
+
+          // Wait for the video to actually start rendering frames
+          videoRef.value.addEventListener('loadeddata', () => {
+            if (!hasCountDownStarted) {
+              hasCountDownStarted = true;
+              startCountdown();
+            }
+          }, { once: true });
+
           await videoRef.value.play();
-          startCountdown();
           isCameraRunning = true;
         }
       } catch (err) {
@@ -66,12 +73,10 @@ export default function useCamera(): CameraReturn {
       frameListener = await UvcCameraPlugin.addListener('frame', (frame: { data: string }) => {
         UVCSrcRef.value = `data:image/jpeg;base64,${frame.data}`;
 
+        // Start countdown on the first real frame — camera is ready and rendering
         if (!hasCountDownStarted) {
           hasCountDownStarted = true;
-          const timeOut = setTimeout(async () => {
-            startCountdown();
-            clearTimeout(timeOut);
-          }, loaderDelay);
+          startCountdown();
         }
       });
 
@@ -150,6 +155,7 @@ export default function useCamera(): CameraReturn {
 
       const context = canvas.getContext('2d');
       if (!context) return;
+      context.save();
       context.scale(-1, 1);
       context.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
       context.restore();

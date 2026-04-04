@@ -81,15 +81,15 @@ button {
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
   font-size: 1em;
-  font-weight: 500;
+  font-weight: 600;
   font-family: inherit;
-  background-color: $dark;
+  background-color: $secondary-color;
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: all 0.2s ease;
   color: $white;
 
   &:hover {
-    border-color: #646cff;
+    filter: brightness(1.15);
   }
 
   &:focus,
@@ -123,7 +123,9 @@ button {
   background-color: $primary-color;
   color: $white;
   width: fit-content;
-  display: block;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 0.75rem 1.5rem;
   border-radius: 2rem;
   align-self: center;
@@ -132,6 +134,7 @@ button {
   &:hover {
     color: $white;
     border: 3px solid $secondary-color;
+    filter: none;
   }
 
   &.disabled {

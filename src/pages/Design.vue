@@ -55,7 +55,10 @@
         </div>
       </div>
     </div>
-    <button @click="handlePrint()" class="pb-button p-5" :class="{ disabled: isPrintPressed }">PROCEED TO PRINT</button>
+    <button @click="handlePrint()" class="pb-button p-5" :class="{ disabled: isPrintPressed }" :disabled="isPrintPressed">
+      <i class="mdi" :class="isPrintPressed ? 'mdi-loading mdi-spin' : 'mdi-printer'"></i>
+      {{ isPrintPressed ? 'PRINTING...' : 'PROCEED TO PRINT' }}
+    </button>
   </div>
 </template>
 

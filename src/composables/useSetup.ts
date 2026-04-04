@@ -9,12 +9,8 @@ import {
   computeImageRect,
   verifyColorData,
 } from './useFrameConfig';
+import { BASE_DIRS } from '@/stores/designStore';
 import type { KonvaRectConfig, DesignData } from '@/types';
-
-const BASE_DIRS: Record<string, string> = {
-  header: '/images/designs/',
-  footer: '/images/footer/',
-};
 
 interface SetupReturn {
   responsiveWidth: Ref<number>;

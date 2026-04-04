@@ -9,7 +9,7 @@ interface NetworkState {
 
 export const useNetworkStore = defineStore('network', {
   state: (): NetworkState => ({
-    networkData: { ipAddress: '' },
+    networkData: { ipAddress: '', qrEnabled: false },
   }),
 
   actions: {
@@ -21,7 +21,7 @@ export const useNetworkStore = defineStore('network', {
       await FilesystemService.writeJsonFile('networkData.json', this.networkData);
     },
 
-    updateField(key: keyof NetworkData, value: string): void {
+    updateField<K extends keyof NetworkData>(key: K, value: NetworkData[K]): void {
       this.networkData[key] = value;
       this.save();
     },

@@ -5,7 +5,7 @@
     <p id="touchtostart" class="text-2xl uppercase whitespace-nowrap tracking-wider">Touch anywhere to start</p>
   </div>
   <router-link v-if="isActivate" to="/templates" class="absolute w-screen h-screen top-0 left-0"></router-link>
-  <div v-else id="modal">
+  <div v-else-if="!isCheckingActivation" id="modal">
     <div id="modal-content" class="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
       <h2 class="text-2xl font-bold mb-4">Activation Required</h2>
       <p class="mb-4">Please activate your device to use the photobooth</p>
@@ -29,6 +29,7 @@ const licenseKey = ref('');
 
 const {
   isActivate,
+  isCheckingActivation,
   deviceId,
   validateKey,
   checkActivation,

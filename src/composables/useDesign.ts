@@ -3,10 +3,10 @@ import { useRouter } from 'vue-router';
 import { Capacitor } from '@capacitor/core';
 import { useAppStore } from '@/stores/appStore';
 import { useNetworkStore } from '@/stores/networkStore';
-import frameDataJson from '@/data/frameData.json';
 import defaultDesignData from '@/data/designData.json';
 import { FilesystemService } from '@/services/filesystem';
 import { ImageLoaderService } from '@/services/imageLoader';
+import { ImageCompressorService } from '@/services/imageCompressor';
 import {
   useResponsiveSizing,
   computeFrameRect,
@@ -14,14 +14,9 @@ import {
   darkenHex,
   verifyColorData,
 } from './useFrameConfig';
+import { BASE_DIRS } from '@/stores/designStore';
+import { useTemplateStore } from '@/stores/templateStore';
 import type { DesignData, FrameTemplate, KonvaRectConfig, UploadedImage } from '@/types';
-
-const frames = (frameDataJson as { frames: FrameTemplate[] }).frames;
-
-const BASE_DIRS: Record<string, string> = {
-  header: '/images/designs/',
-  footer: '/images/footer/',
-};
 
 interface DesignReturn {
   responsiveWidth: Ref<number>;
@@ -51,8 +46,10 @@ export default function useDesign(): DesignReturn {
   const layerRef = ref<{ getNode: () => { toCanvas: (opts: Record<string, number>) => HTMLCanvasElement; toDataURL: (opts: Record<string, number>) => string } } | null>(null);
   const loadedImages = ref<Record<number, HTMLImageElement>>({});
 
-  const selectedFrameId = appStore.selectedTemplate?.id ?? 2;
-  const { frameData, variation, baseData } = frames[selectedFrameId];
+  const templateStore = useTemplateStore();
+  const selectedFrameId = appStore.selectedTemplate?.id ?? 0;
+  const template = templateStore.allFrames[selectedFrameId] ?? templateStore.allFrames[0];
+  const { frameData, variation, baseData } = template;
 
   // --- Responsive Sizing ---
   const { responsiveWidth, responsiveHeight, diff } = useResponsiveSizing(() => baseData);
@@ -215,7 +212,7 @@ export default function useDesign(): DesignReturn {
 
     if (frameData.rotate && Capacitor.getPlatform() === 'web') {
       const node = layerRef.value!.getNode();
-      const oldCanvas = node.toCanvas({ pixelRatio: 8, quality: 2 });
+      const oldCanvas = node.toCanvas({ pixelRatio: 4, quality: 2 });
       const rotatedCanvas = document.createElement('canvas');
 
       rotatedCanvas.width = oldCanvas.height;
@@ -228,8 +225,10 @@ export default function useDesign(): DesignReturn {
 
       dataURL = rotatedCanvas.toDataURL('image/png');
     } else {
-      dataURL = layerRef.value!.getNode().toDataURL({ pixelRatio: 8, quality: 2 });
+      dataURL = layerRef.value!.getNode().toDataURL({ pixelRatio: 4, quality: 2 });
     }
+
+    const base64 = dataURL.replace('data:image/png;base64,', '');
 
     if (Capacitor.getPlatform() === 'web') {
       const printWindow = window.open('', '_blank')!;
@@ -268,8 +267,6 @@ export default function useDesign(): DesignReturn {
             `);
       printWindow.document.close();
     } else {
-      const base64 = dataURL.replace('data:image/png;base64,', '');
-
       await FilesystemService.writeToDocuments(`konva_${Date.now()}.png`, base64);
 
       try {
@@ -280,7 +277,27 @@ export default function useDesign(): DesignReturn {
       }
 
       console.log('Saved & Printed successfully!');
-      router.push('/');
+    }
+
+    // After printing: if QR is enabled, compress and navigate to QR page
+    if (networkStore.networkData.qrEnabled) {
+      try {
+        const compressed = await ImageCompressorService.compressBase64Image(base64, {
+          maxWidth: 1200,
+          maxHeight: 1200,
+          quality: 0.75,
+        });
+        appStore.pendingQrBase64 = compressed;
+      } catch (err) {
+        console.error('Image compression failed:', err);
+        // Still navigate to QR page — it will handle the error state
+        appStore.pendingQrBase64 = null;
+      }
+      router.push('/qr');
+    } else {
+      if (Capacitor.getPlatform() !== 'web') {
+        router.push('/');
+      }
     }
   };
 

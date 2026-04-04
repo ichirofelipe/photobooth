@@ -1,7 +1,7 @@
 import { watch } from 'vue';
 import { useRoute, useRouter, type RouteLocationNormalizedLoaded } from 'vue-router';
 import { useAppStore } from '@/stores/appStore';
-import { useDesignStore } from '@/stores/designStore';
+import { useTemplateStore } from '@/stores/templateStore';
 import pageConfigJson from '@/data/pageConfig.json';
 import type { PageConfigEntry } from '@/types';
 
@@ -16,9 +16,9 @@ export default function useNavigation(): NavigationReturn {
   const router = useRouter();
   const route = useRoute();
   const appStore = useAppStore();
-  const designStore = useDesignStore();
+  const templateStore = useTemplateStore();
 
-  designStore.init();
+  templateStore.init();
 
   const pagesToResetData: string[] = pageConfig
     .filter((page) => page.resetData === true)

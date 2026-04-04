@@ -2,10 +2,8 @@ import { defineStore } from 'pinia';
 import { FilesystemService } from '@/services/filesystem';
 import { ImageLoaderService } from '@/services/imageLoader';
 import defaultDesignData from '@/data/designData.json';
-import frameDataJson from '@/data/frameData.json';
 import type { DesignData, FrameTemplate } from '@/types';
-
-const frames = (frameDataJson as { frames: FrameTemplate[] }).frames;
+import { useTemplateStore } from './templateStore';
 
 const BASE_DIRS: Record<string, string> = {
   header: '/images/designs/',
@@ -24,7 +22,7 @@ const TEST_IMAGES: string[] = [
   '/images/captures/sample4.webp',
 ];
 
-export { frames };
+export { BASE_DIRS };
 
 interface DesignState {
   initialized: boolean;
@@ -48,7 +46,12 @@ export const useDesignStore = defineStore('design', {
   }),
 
   getters: {
-    currentTemplate: (state): FrameTemplate => frames[state.currentTemplateIndex],
+    currentTemplate(state): FrameTemplate {
+      const templateStore = useTemplateStore();
+      const maxIdx = templateStore.allFrames.length - 1;
+      const idx = Math.min(state.currentTemplateIndex, maxIdx);
+      return templateStore.allFrames[Math.max(0, idx)];
+    },
   },
 
   actions: {
@@ -60,10 +63,12 @@ export const useDesignStore = defineStore('design', {
     },
 
     setFrame(direction: 'prev' | 'next'): void {
+      const templateStore = useTemplateStore();
+      const maxIndex = templateStore.allFrames.length - 1;
       if (direction === 'prev') {
-        this.currentTemplateIndex = this.currentTemplateIndex > 0 ? this.currentTemplateIndex - 1 : 3;
+        this.currentTemplateIndex = this.currentTemplateIndex > 0 ? this.currentTemplateIndex - 1 : maxIndex;
       } else {
-        this.currentTemplateIndex = this.currentTemplateIndex < 3 ? this.currentTemplateIndex + 1 : 0;
+        this.currentTemplateIndex = this.currentTemplateIndex < maxIndex ? this.currentTemplateIndex + 1 : 0;
       }
     },
 
@@ -85,7 +90,6 @@ export const useDesignStore = defineStore('design', {
     },
 
     async reloadMainData(): Promise<void> {
-      await this.logDataDirectory();
       await this.loadDesignData();
       await this.loadImages('header');
       await this.loadImages('footer');
