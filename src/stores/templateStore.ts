@@ -1,12 +1,32 @@
 import { defineStore } from 'pinia';
+import { v4 as uuidv4 } from 'uuid';
 import { FilesystemService } from '@/services/filesystem';
 import frameDataJson from '@/data/frameData.json';
 import type { FrameTemplate, TemplateConfig } from '@/types';
 
-const defaultFrames: FrameTemplate[] = (frameDataJson as { frames: FrameTemplate[] }).frames;
+const BUILTIN_COUNT = 4; // indices 0-3 in the default frame set are built-ins
+
+interface StoredFrameData {
+  schemaVersion?: number;
+  frames: FrameTemplate[];
+}
+
+const defaultFrames: FrameTemplate[] = (frameDataJson as StoredFrameData).frames;
 
 const MAX_TEMPLATES = 8;
 const MAX_ACTIVE = 4;
+
+function normalizeFrameTemplate(
+  frame: FrameTemplate,
+  index: number,
+  fallbackSource: 'builtin' | 'custom' = 'custom'
+): FrameTemplate {
+  return {
+    ...JSON.parse(JSON.stringify(frame)),
+    id: frame.id ?? uuidv4(),
+    source: frame.source ?? (index < BUILTIN_COUNT ? 'builtin' : fallbackSource),
+  };
+}
 
 interface TemplateState {
   allFrames: FrameTemplate[];
@@ -24,8 +44,8 @@ export const useTemplateStore = defineStore('template', {
   getters: {
     activeFrames(state): { originalIndex: number; frame: FrameTemplate }[] {
       return state.activeIndices
-        .filter(i => i >= 0 && i < state.allFrames.length)
-        .map(i => ({ originalIndex: i, frame: state.allFrames[i] }));
+        .filter((i) => i >= 0 && i < state.allFrames.length)
+        .map((i) => ({ originalIndex: i, frame: state.allFrames[i] }));
     },
     canCreateMore(state): boolean {
       return state.allFrames.length < MAX_TEMPLATES;
@@ -44,10 +64,42 @@ export const useTemplateStore = defineStore('template', {
     },
 
     async loadFrames(): Promise<void> {
-      this.allFrames = await FilesystemService.loadOrInitJson<FrameTemplate[]>(
+      const raw = await FilesystemService.loadOrInitJson<StoredFrameData | FrameTemplate[]>(
         'customFrameData.json',
-        defaultFrames
+        { schemaVersion: 1, frames: defaultFrames } as StoredFrameData
       );
+
+      const stored: StoredFrameData = Array.isArray(raw)
+        ? { schemaVersion: 0, frames: raw as FrameTemplate[] }
+        : (raw as StoredFrameData);
+
+      let frames = stored.frames ?? defaultFrames;
+      let needsSave = false;
+
+      const normalizedFrames = frames.map((frame, index) =>
+        normalizeFrameTemplate(frame, index, 'custom')
+      );
+
+      if (
+        !stored.schemaVersion ||
+        stored.schemaVersion < 1 ||
+        normalizedFrames.some(
+          (frame, index) =>
+            frame.id !== frames[index].id || frame.source !== frames[index].source
+        )
+      ) {
+        frames = normalizedFrames;
+        needsSave = true;
+      }
+
+      this.allFrames = frames;
+
+      if (needsSave) {
+        await FilesystemService.writeJsonFile<StoredFrameData>('customFrameData.json', {
+          schemaVersion: 1,
+          frames: this.allFrames,
+        });
+      }
     },
 
     async loadConfig(): Promise<void> {
@@ -57,7 +109,7 @@ export const useTemplateStore = defineStore('template', {
         { activeIndices: defaultActive }
       );
       this.activeIndices = config.activeIndices.filter(
-        i => i >= 0 && i < this.allFrames.length
+        (i) => i >= 0 && i < this.allFrames.length
       );
       if (this.activeIndices.length === 0 && this.allFrames.length > 0) {
         this.activeIndices = [0];
@@ -65,7 +117,10 @@ export const useTemplateStore = defineStore('template', {
     },
 
     async saveFrames(): Promise<void> {
-      await FilesystemService.writeJsonFile('customFrameData.json', this.allFrames);
+      await FilesystemService.writeJsonFile<StoredFrameData>('customFrameData.json', {
+        schemaVersion: 1,
+        frames: this.allFrames,
+      });
     },
 
     async saveConfig(): Promise<void> {
@@ -74,16 +129,44 @@ export const useTemplateStore = defineStore('template', {
       });
     },
 
+    sanitizeForEntitlement(hasTemplateEditor: boolean): void {
+      if (hasTemplateEditor) return;
+
+      const builtinIndices = this.allFrames
+        .map((frame, index) => ({ frame, index }))
+        .filter(({ frame }) => frame.source === 'builtin')
+        .map(({ index }) => index);
+
+      const before = this.activeIndices.length;
+      this.activeIndices = this.activeIndices.filter((index) =>
+        builtinIndices.includes(index)
+      );
+
+      if (this.activeIndices.length === 0 && builtinIndices.length > 0) {
+        this.activeIndices = [builtinIndices[0]];
+      }
+
+      if (this.activeIndices.length !== before) {
+        void this.saveConfig();
+      }
+    },
+
     async addTemplate(template: FrameTemplate): Promise<boolean> {
       if (this.allFrames.length >= MAX_TEMPLATES) return false;
-      this.allFrames.push(JSON.parse(JSON.stringify(template)));
+      this.allFrames.push(
+        normalizeFrameTemplate(template, this.allFrames.length, 'custom')
+      );
       await this.saveFrames();
       return true;
     },
 
     async updateTemplate(index: number, template: FrameTemplate): Promise<boolean> {
       if (index < 0 || index >= this.allFrames.length) return false;
-      this.allFrames[index] = JSON.parse(JSON.stringify(template));
+      this.allFrames[index] = normalizeFrameTemplate(
+        template,
+        index,
+        this.allFrames[index].source
+      );
       await this.saveFrames();
       return true;
     },
@@ -93,8 +176,8 @@ export const useTemplateStore = defineStore('template', {
       if (this.allFrames.length <= 1) return false;
       this.allFrames.splice(index, 1);
       this.activeIndices = this.activeIndices
-        .filter(i => i !== index)
-        .map(i => (i > index ? i - 1 : i));
+        .filter((i) => i !== index)
+        .map((i) => (i > index ? i - 1 : i));
       if (this.activeIndices.length === 0) {
         this.activeIndices = [0];
       }

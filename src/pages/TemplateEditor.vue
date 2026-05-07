@@ -2,8 +2,21 @@
   <div id="parent" class="template-editor-page">
     <h1 class="whitespace-nowrap tracking-wider">Template Editor</h1>
 
+    <!-- ===== ACCESS GATE ===== -->
+    <template v-if="!entitlementStore.isValid('template_editor')">
+      <div class="te-locked">
+        <i class="mdi mdi-lock-outline te-lock-icon"></i>
+        <h2>Template Editor Locked</h2>
+        <p>A <strong>template_editor</strong> license is required to create and manage custom templates.</p>
+        <p class="te-lock-subtext">Built-in templates are always available without a license.</p>
+        <router-link :to="{ name: 'PremiumAccess', params: { target: 'template_editor' } }" class="pb-button p-5">
+          <i class="mdi mdi-lock-open-outline"></i> Unlock Template Editor
+        </router-link>
+      </div>
+    </template>
+
     <!-- ===== TEMPLATE LIST VIEW ===== -->
-    <template v-if="!editForm">
+    <template v-else-if="!editForm">
       <div class="te-status">
         <span>Templates: {{ templateStore.allFrames.length }} / 8</span>
         <span>Active: {{ templateStore.activeIndices.length }} / 4</span>
@@ -24,7 +37,7 @@
           </div>
           <div class="te-card-body">
             <h4>{{ frame.label }}</h4>
-            <span class="te-card-meta">{{ frame.frameData.imageCount }} photos · {{ frame.variation.length }} variation{{ frame.variation.length > 1 ? 's' : '' }}</span>
+            <span class="te-card-meta">{{ frame.frameData.imageCount }} photos | {{ frame.variation.length }} variation{{ frame.variation.length > 1 ? 's' : '' }}</span>
           </div>
           <div class="te-card-controls">
             <label class="te-toggle">
@@ -174,7 +187,7 @@
                 v-if="editForm.variation.length > 1"
                 class="te-var-tab te-var-remove"
                 @click="removeVariation(selectedVariation)"
-              >−</button>
+              >-</button>
             </div>
 
             <template v-if="currentVar">
@@ -216,7 +229,9 @@
                     v-if="currentVar.imagesData.length > 1"
                     class="te-btn-icon te-btn-danger te-btn-sm"
                     @click="removeImageSlot(idx)"
-                  ><i class="mdi mdi-close"></i></button>
+                  >
+                    <i class="mdi mdi-close"></i>
+                  </button>
                 </div>
                 <div class="te-rect-row">
                   <div class="te-field"><label>X</label><input v-model.number="img.x" type="number" step="0.5" class="te-input" /></div>
@@ -247,10 +262,12 @@
 
 <script setup lang="ts">
 import { useTemplateStore } from '@/stores/templateStore';
+import { useEntitlementStore } from '@/stores/entitlementStore';
 import useTemplateEditor from '@/composables/useTemplateEditor';
 import type { FrameTemplate } from '@/types';
 
 const templateStore = useTemplateStore();
+const entitlementStore = useEntitlementStore();
 
 const {
   editingIndex,
@@ -315,6 +332,41 @@ async function handleDelete(index: number): Promise<void> {
 
 <style scoped lang="scss">
 @use '@/assets/scss/variables' as *;
+
+// ==================== LOCK SCREEN ====================
+.te-locked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px 20px;
+  text-align: center;
+  color: $border-color;
+
+  .te-lock-icon {
+    font-size: 64px;
+    color: #9ca3af;
+  }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #374151;
+  }
+
+  p {
+    font-size: 14px;
+    max-width: 320px;
+    color: #6b7280;
+  }
+
+  .te-lock-subtext {
+    font-size: 12px;
+    color: #9ca3af;
+    font-style: italic;
+  }
+}
 
 // ==================== STATUS BAR ====================
 .te-status {

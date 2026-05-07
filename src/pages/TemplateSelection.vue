@@ -2,12 +2,12 @@
   <div id="parent">
     <h1 class="whitespace-nowrap tracking-wider">Pick your Prim style</h1>
     <router-link to="/setup" class="setup p-5"></router-link>
-    <div id="template-selection" :class="'grid grid-cols-' + templateStore.activeFrames.length">
+    <div id="template-selection" :class="'grid grid-cols-' + visibleFrames.length">
       <a
-        v-for="item in templateStore.activeFrames"
+        v-for="item in visibleFrames"
         :key="item.originalIndex"
         class="self-center template-option"
-        :class="{ active: appStore.selectedTemplate?.id === item.originalIndex }"
+        :class="{ active: selectedTemplateVisible && appStore.selectedTemplate?.id === item.originalIndex }"
         @click="appStore.setTemplate(item.originalIndex, item.frame.frameData.imageCount)"
       >
         <label class="primary-color">{{ item.frame.label }}</label>
@@ -15,17 +15,35 @@
         <div v-else class="pb-template-placeholder">{{ item.frame.frameData.imageCount }} photos</div>
       </a>
     </div>
-    <router-link v-if="appStore.selectedTemplate" to="/camera" class="pb-button p-5"><i class="mdi mdi-camera"></i> Enter the PRIM experience</router-link>
-    <button v-if="!appStore.selectedTemplate" class="pb-button p-5 disabled"><i class="mdi mdi-camera"></i> Enter the PRIM experience</button>
+    <router-link v-if="selectedTemplateVisible" to="/camera" class="pb-button p-5"><i class="mdi mdi-camera"></i> Enter the PRIM experience</router-link>
+    <button v-else class="pb-button p-5 disabled"><i class="mdi mdi-camera"></i> Enter the PRIM experience</button>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useAppStore } from '@/stores/appStore';
 import { useTemplateStore } from '@/stores/templateStore';
+import { useEntitlementStore } from '@/stores/entitlementStore';
 
 const appStore = useAppStore();
 const templateStore = useTemplateStore();
+const entitlementStore = useEntitlementStore();
+
+/**
+ * When template_editor is not active, restrict to built-in templates only.
+ * Custom templates the owner created remain in allFrames but are hidden until
+ * the entitlement is purchased.
+ */
+const visibleFrames = computed(() => {
+  const all = templateStore.activeFrames;
+  if (entitlementStore.isValid('template_editor')) return all;
+  return all.filter((item) => item.frame.source === 'builtin');
+});
+
+const selectedTemplateVisible = computed(() =>
+  visibleFrames.value.some((item) => item.originalIndex === appStore.selectedTemplate?.id)
+);
 </script>
 
 <style scoped lang="scss">

@@ -1,0 +1,36 @@
+{
+  "PB-BASE-TLDB-AA49-4UVL": {
+    "feature": "base_app",
+    "licenseId": "b1bc62f3308bae045bfeec24",
+    "source": "manual",
+    "status": "active",
+    "customerEmail": null,
+    "billingProvider": null,
+    "providerCustomerId": null,
+    "providerPlanId": null,
+    "providerSessionId": null,
+    "boundDeviceId": "b3e2a48c-39d2-4995-929d-9fd1c2e7ad4c",
+    "currentPeriodEnd": null,
+    "createdAt": 1778003055852,
+    "updatedAt": 1778003080462,
+    "lastActivatedAt": 1778003080462,
+    "lastTransferredAt": null
+  },
+  "PB-PRM-M4KQ-TQQC-HBSR": {
+    "feature": "premium_bundle",
+    "licenseId": "7b405f16d0ed97e2aefa1faf",
+    "source": "manual",
+    "status": "active",
+    "customerEmail": null,
+    "billingProvider": null,
+    "providerCustomerId": null,
+    "providerPlanId": null,
+    "providerSessionId": null,
+    "boundDeviceId": "b3e2a48c-39d2-4995-929d-9fd1c2e7ad4c",
+    "currentPeriodEnd": null,
+    "createdAt": 1778096665193,
+    "updatedAt": 1778097572150,
+    "lastActivatedAt": 1778097572150,
+    "lastTransferredAt": null
+  }
+}

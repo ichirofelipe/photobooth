@@ -24,6 +24,10 @@ export const useAppStore = defineStore('app', {
       this.selectedTemplate = { id: templateId, imgCount };
     },
 
+    clearTemplate(): void {
+      this.selectedTemplate = null;
+    },
+
     async addImage(imageData: string): Promise<void> {
       const img = await ImageLoaderService.loadImageFromUrl(imageData);
       this.uploadedImages.push({

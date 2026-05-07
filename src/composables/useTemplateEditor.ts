@@ -1,4 +1,5 @@
 import { ref, computed, type Ref, type ComputedRef } from 'vue';
+import { v4 as uuidv4 } from 'uuid';
 import { useTemplateStore } from '@/stores/templateStore';
 import type { FrameTemplate, RectData, VariationData } from '@/types';
 
@@ -21,6 +22,8 @@ function createDefaultVariation(imageCount: number): VariationData {
 
 function createDefaultTemplate(): FrameTemplate {
   return {
+    id: uuidv4(),
+    source: 'custom',
     imgSrc: '',
     label: 'New Template',
     baseData: { width: 750, height: 500 },

@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router';
 import { Capacitor } from '@capacitor/core';
 import { useAppStore } from '@/stores/appStore';
 import { useNetworkStore } from '@/stores/networkStore';
+import { useEntitlementStore } from '@/stores/entitlementStore';
 import defaultDesignData from '@/data/designData.json';
 import { FilesystemService } from '@/services/filesystem';
 import { ImageLoaderService } from '@/services/imageLoader';
@@ -40,6 +41,7 @@ export default function useDesign(): DesignReturn {
   const router = useRouter();
   const appStore = useAppStore();
   const networkStore = useNetworkStore();
+  const entitlementStore = useEntitlementStore();
 
   const mainData = ref<DesignData | undefined>();
   const isPrintPressed = ref(false);
@@ -279,8 +281,9 @@ export default function useDesign(): DesignReturn {
       console.log('Saved & Printed successfully!');
     }
 
-    // After printing: if QR is enabled, compress and navigate to QR page
-    if (networkStore.networkData.qrEnabled) {
+    // After printing: if QR is enabled AND qr_download entitlement is valid,
+    // compress and navigate to QR page
+    if (entitlementStore.isValid('qr_download') && networkStore.networkData.qrEnabled) {
       try {
         const compressed = await ImageCompressorService.compressBase64Image(base64, {
           maxWidth: 1200,

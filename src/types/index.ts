@@ -54,6 +54,8 @@ export interface VariationData {
 }
 
 export interface FrameTemplate {
+  id: string;
+  source: 'builtin' | 'custom';
   imgSrc: string;
   label: string;
   baseData: Dimensions;
@@ -108,10 +110,85 @@ export interface PageConfigEntry {
   resetData: boolean;
 }
 
+// ---- Feature Entitlements ----
+
+export type Feature = 'base_app' | 'qr_download' | 'template_editor';
+export type PremiumFeature = 'qr_download' | 'template_editor';
+export type PremiumUnlockTarget = PremiumFeature | 'premium_bundle';
+export type ActivationTarget = Feature | 'premium_bundle';
+export type PaymentMode = 'manual' | 'xendit' | 'future_gateway';
+
+export const ALL_FEATURES: Feature[] = ['base_app', 'qr_download', 'template_editor'];
+export const PREMIUM_FEATURES: PremiumFeature[] = ['qr_download', 'template_editor'];
+export const PREMIUM_UNLOCK_TARGETS: PremiumUnlockTarget[] = [
+  'qr_download',
+  'template_editor',
+  'premium_bundle',
+];
+
+export interface EntitlementRecord {
+  deviceId: string;
+  feature: Feature;
+  licenseId?: string;
+  issuedAt: number;
+  expiresAt: number;
+  sig: string;
+}
+
+export interface EntitlementSyncItem {
+  feature: Feature;
+  licenseId?: string;
+}
+
+export interface EntitlementRevocation {
+  feature: Feature;
+  reason:
+    | 'transferred_to_another_device'
+    | 'not_activated'
+    | 'billing_inactive'
+    | 'unknown';
+}
+
+export interface PremiumContactMethod {
+  id: string;
+  label: string;
+  kind: 'facebook' | 'messenger' | 'email' | 'gcash' | 'maya' | 'phone' | 'social' | 'note';
+  value: string;
+  href?: string;
+  details?: string;
+  buttonLabel?: string;
+}
+
+export interface PremiumTargetConfig {
+  title: string;
+  summary: string;
+  includes: PremiumFeature[];
+}
+
+export interface PremiumPaymentConfig {
+  mode: PaymentMode;
+  futureGatewayNote?: string;
+  supportNote?: string;
+  contactMethods: PremiumContactMethod[];
+  targets: Record<PremiumUnlockTarget, PremiumTargetConfig>;
+}
+
 // ---- Device Key ----
 
-export interface DeviceKeyErrors {
-  licenseKey: string | null;
+export interface DeviceKeyPlugin {
+  getDeviceId(): Promise<{ deviceId: string }>;
+  getEntitlements(opts: { publicKey: string }): Promise<{ entitlements: EntitlementRecord[] }>;
+  activateLicense(opts: {
+    key: string;
+    feature: ActivationTarget;
+    serverUrl: string;
+    publicKey: string;
+  }): Promise<{ transferred?: boolean; activatedFeatures?: Feature[] }>;
+  syncEntitlements(opts: {
+    serverUrl: string;
+    entitlements: EntitlementSyncItem[];
+    publicKey: string;
+  }): Promise<{ revoked: EntitlementRevocation[] }>;
 }
 
 // ---- Upload Data (Setup page) ----
