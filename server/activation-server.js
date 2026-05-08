@@ -42,6 +42,7 @@ const PRIVATE_KEY = loadPrivateKey(requireEnv('ACTIVATION_PRIVATE_KEY_BASE64'));
 const BASE_APP_LEASE_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
 const PREMIUM_LEASE_DURATION_MS = 24 * 60 * 60 * 1000;
 const PREMIUM_LICENSE_DURATIONS = {
+  '5m': 5 * 60 * 1000,
   '30d': 30 * 24 * 60 * 60 * 1000,
   '90d': 90 * 24 * 60 * 60 * 1000,
   '180d': 180 * 24 * 60 * 60 * 1000,
@@ -833,7 +834,7 @@ function resolveManualLicenseExpiration(feature, duration) {
 
   const durationMs = PREMIUM_LICENSE_DURATIONS[duration];
   if (!durationMs) {
-    return { error: 'Invalid premium key duration. Use 30d, 90d, 180d, or 365d.' };
+    return { error: 'Invalid premium key duration. Use 5m, 30d, 90d, 180d, or 365d.' };
   }
 
   return { activationDurationMs: durationMs, currentPeriodEnd: null };

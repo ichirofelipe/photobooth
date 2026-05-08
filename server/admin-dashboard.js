@@ -65,6 +65,7 @@ export function renderAdminDashboardPage() {
             <label id="duration-field">
               Premium duration
               <select name="duration">
+                <option value="5m">5 minutes (testing only)</option>
                 <option value="30d">1 month</option>
                 <option value="90d">3 months</option>
                 <option value="180d">6 months</option>
@@ -186,10 +187,11 @@ export function renderAdminDashboardPage() {
       };
       const premiumFeatures = new Set(['qr_download', 'template_editor', 'premium_bundle']);
       const premiumDurations = {
-        '30d': { label: '1 month', days: 30 },
-        '90d': { label: '3 months', days: 90 },
-        '180d': { label: '6 months', days: 180 },
-        '365d': { label: '1 year', days: 365 }
+        '5m': { label: '5 minutes (testing only)', ms: 5 * 60 * 1000 },
+        '30d': { label: '1 month', ms: 30 * 24 * 60 * 60 * 1000 },
+        '90d': { label: '3 months', ms: 90 * 24 * 60 * 60 * 1000 },
+        '180d': { label: '6 months', ms: 180 * 24 * 60 * 60 * 1000 },
+        '365d': { label: '1 year', ms: 365 * 24 * 60 * 60 * 1000 }
       };
 
       const $ = (id) => document.getElementById(id);
@@ -210,9 +212,11 @@ export function renderAdminDashboardPage() {
 
       function durationLabelFromMs(value) {
         const match = Object.values(premiumDurations).find((duration) => {
-          return duration.days * 24 * 60 * 60 * 1000 === value;
+          return duration.ms === value;
         });
-        return match ? match.label : Math.round(value / (24 * 60 * 60 * 1000)) + ' days';
+        if (match) return match.label;
+        if (value < 60 * 60 * 1000) return Math.round(value / (60 * 1000)) + ' minutes';
+        return Math.round(value / (24 * 60 * 60 * 1000)) + ' days';
       }
 
       function formatExpiration(license) {
