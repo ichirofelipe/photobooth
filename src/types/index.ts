@@ -145,6 +145,7 @@ export interface EntitlementRevocation {
   reason:
     | 'transferred_to_another_device'
     | 'not_activated'
+    | 'expired'
     | 'billing_inactive'
     | 'unknown';
 }

@@ -39,7 +39,14 @@ loadLocalEnv();
 const PORT = Number(process.env.PORT || process.env.ACTIVATION_PORT || 3001);
 const ADMIN_SECRET = requireEnv('ADMIN_SECRET');
 const PRIVATE_KEY = loadPrivateKey(requireEnv('ACTIVATION_PRIVATE_KEY_BASE64'));
-const LEASE_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+const BASE_APP_LEASE_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+const PREMIUM_LEASE_DURATION_MS = 24 * 60 * 60 * 1000;
+const PREMIUM_LICENSE_DURATIONS = {
+  '30d': 30 * 24 * 60 * 60 * 1000,
+  '90d': 90 * 24 * 60 * 60 * 1000,
+  '180d': 180 * 24 * 60 * 60 * 1000,
+  '365d': 365 * 24 * 60 * 60 * 1000,
+};
 const MANAGEMENT_LINK_TTL_MS = 60 * 60 * 1000;
 const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const ADMIN_SESSION_COOKIE = 'pb_admin_session';
@@ -147,13 +154,17 @@ app.get('/admin/api/licenses', requireAdminApi, async (req, res) => {
     offset: req.query.offset,
   });
 
-  return res.json(result);
+  return res.json({
+    ...result,
+    licenses: result.licenses.map(decorateAdminLicense),
+  });
 });
 
 app.post('/admin/api/licenses', requireAdminApi, async (req, res) => {
   const feature = typeof req.body?.feature === 'string' ? req.body.feature : '';
   const count = Math.min(Math.max(Number(req.body?.count) || 1, 1), 50);
   const providedKey = typeof req.body?.key === 'string' ? req.body.key.trim() : '';
+  const duration = typeof req.body?.duration === 'string' ? req.body.duration.trim() : '';
   const customerEmail = optionalString(req.body?.customerEmail, 320);
   const adminNote = optionalString(req.body?.adminNote, 500);
 
@@ -164,13 +175,23 @@ app.post('/admin/api/licenses', requireAdminApi, async (req, res) => {
     return res.status(400).json({ error: 'A custom key can only be used when count is 1.' });
   }
 
+  const durationResult = resolveManualLicenseExpiration(feature, duration);
+  if (durationResult.error) {
+    return res.status(400).json({ error: durationResult.error });
+  }
+
   try {
     const licenses = [];
+    const licenseOptions = {
+      customerEmail,
+      adminNote,
+      currentPeriodEnd: durationResult.currentPeriodEnd,
+    };
     for (let i = 0; i < count; i += 1) {
       const record = providedKey
-        ? await createManualLicense(providedKey, feature, { customerEmail, adminNote })
-        : await createGeneratedManualLicense(feature, { customerEmail, adminNote });
-      licenses.push(record);
+        ? await createManualLicense(providedKey, feature, licenseOptions)
+        : await createGeneratedManualLicense(feature, licenseOptions);
+      licenses.push(decorateAdminLicense(record));
     }
 
     return res.json({ success: true, licenses });
@@ -391,7 +412,9 @@ app.post('/activate', activateLimiter, async (req, res) => {
   if (!canIssueEntitlement(license)) {
     return res.status(402).json({
       error:
-        license.source === 'subscription'
+        isEffectivelyExpired(license)
+          ? 'This activation key has expired.'
+          : license.source === 'subscription'
           ? 'This subscription is not active. Complete checkout or update billing and try again.'
           : 'This license is no longer active.',
     });
@@ -447,6 +470,11 @@ app.post('/sync', async (req, res) => {
     if (exactLicense?.boundDeviceId && exactLicense.boundDeviceId !== deviceId) {
       reason = 'transferred_to_another_device';
     } else if (
+      (exactLicense && isEffectivelyExpired(exactLicense)) ||
+      (deviceLicense && isEffectivelyExpired(deviceLicense))
+    ) {
+      reason = 'expired';
+    } else if (
       (exactLicense && !canIssueEntitlement(exactLicense)) ||
       (deviceLicense && !canIssueEntitlement(deviceLicense))
     ) {
@@ -468,6 +496,7 @@ app.post('/admin/create-license', async (req, res) => {
   }
 
   const { key, feature } = req.body ?? {};
+  const duration = typeof req.body?.duration === 'string' ? req.body.duration.trim() : '';
   if (!isValidString(key) || !isValidString(feature)) {
     return res.status(400).json({ error: 'Missing or invalid fields: key, feature.' });
   }
@@ -475,14 +504,22 @@ app.post('/admin/create-license', async (req, res) => {
     return res.status(400).json({ error: 'Invalid feature.' });
   }
 
+  const durationResult = resolveManualLicenseExpiration(feature, duration);
+  if (durationResult.error) {
+    return res.status(400).json({ error: durationResult.error });
+  }
+
   try {
-    const record = await createManualLicense(key, feature);
+    const record = await createManualLicense(key, feature, {
+      currentPeriodEnd: durationResult.currentPeriodEnd,
+    });
     return res.json({
       success: true,
       key: record.licenseKey,
       feature: record.feature,
       source: record.source,
       status: record.status,
+      currentPeriodEnd: record.currentPeriodEnd,
     });
   } catch (error) {
     return res.status(409).json({
@@ -742,15 +779,19 @@ function canonicalString(payload) {
 
 function makeEntitlement(deviceId, license, featureOverride = null) {
   const issuedAt = Date.now();
-  const maxLease = issuedAt + LEASE_DURATION_MS;
+  const feature = featureOverride ?? license.feature;
+  const maxLease =
+    feature === 'base_app'
+      ? issuedAt + BASE_APP_LEASE_DURATION_MS
+      : issuedAt + PREMIUM_LEASE_DURATION_MS;
   const expiresAt =
-    license.source === 'subscription' && typeof license.currentPeriodEnd === 'number'
+    isExpiringLicense(license) && typeof license.currentPeriodEnd === 'number'
       ? Math.min(maxLease, license.currentPeriodEnd)
       : maxLease;
 
   const payload = {
     deviceId,
-    feature: featureOverride ?? license.feature,
+    feature,
     licenseId: license.licenseId,
     issuedAt,
     expiresAt,
@@ -769,16 +810,61 @@ function optionalString(val, maxLen = 128) {
   return trimmed.slice(0, maxLen);
 }
 
+function isExpiringLicense(license) {
+  return license?.source === 'subscription' || license?.feature !== 'base_app';
+}
+
+function resolveManualLicenseExpiration(feature, duration) {
+  if (feature === 'base_app') {
+    if (duration) {
+      return { error: 'Base App keys do not expire. Do not set a duration.' };
+    }
+    return { currentPeriodEnd: null };
+  }
+
+  if (!duration) {
+    return { error: 'Select an expiration duration for premium keys.' };
+  }
+
+  const durationMs = PREMIUM_LICENSE_DURATIONS[duration];
+  if (!durationMs) {
+    return { error: 'Invalid premium key duration. Use 30d, 90d, 180d, or 365d.' };
+  }
+
+  return { currentPeriodEnd: Date.now() + durationMs };
+}
+
+function isEffectivelyExpired(license) {
+  return (
+    isExpiringLicense(license) &&
+    typeof license.currentPeriodEnd === 'number' &&
+    license.currentPeriodEnd <= Date.now()
+  );
+}
+
+function effectiveLicenseStatus(license) {
+  if (license.status === 'active' && isEffectivelyExpired(license)) {
+    return 'expired';
+  }
+  return license.status;
+}
+
+function decorateAdminLicense(license) {
+  return {
+    ...license,
+    effectiveStatus: effectiveLicenseStatus(license),
+    expiresAt: isExpiringLicense(license) ? license.currentPeriodEnd : null,
+  };
+}
+
 function canIssueEntitlement(license) {
   if (!license) return false;
   if (license.source === 'manual') {
-    return license.status === 'active';
+    return license.status === 'active' && !isEffectivelyExpired(license);
   }
 
   if (license.status !== 'active') return false;
-  if (typeof license.currentPeriodEnd === 'number' && license.currentPeriodEnd <= Date.now()) {
-    return false;
-  }
+  if (isEffectivelyExpired(license)) return false;
 
   return true;
 }

@@ -12,6 +12,7 @@ function parseArgs(argv) {
     adminSecret: process.env.ADMIN_SECRET || '',
     feature: '',
     key: '',
+    duration: '',
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -24,6 +25,10 @@ function parseArgs(argv) {
       case '--key':
       case '-k':
         args.key = argv[++i] || '';
+        break;
+      case '--duration':
+      case '-d':
+        args.duration = argv[++i] || '';
         break;
       case '--count':
       case '-c':
@@ -49,21 +54,22 @@ function parseArgs(argv) {
 
 function usage() {
   console.log(
-    'Usage: npm run activation:create-license -- --feature <base_app|qr_download|template_editor|premium_bundle> [--count 1] [--key YOUR-KEY]'
+    'Usage: npm run activation:create-license -- --feature <base_app|qr_download|template_editor|premium_bundle> [--duration <30d|90d|180d|365d>] [--count 1] [--key YOUR-KEY]'
   );
+  console.log('Premium features require --duration. Base app keys must not include --duration.');
   console.log(
     'Env: auto-loads server/activation-server.env and root .env, or use --admin-secret / --server.'
   );
 }
 
-async function createLicense({ server, adminSecret, key, feature }) {
+async function createLicense({ server, adminSecret, key, feature, duration }) {
   const response = await fetch(`${server.replace(/\/$/, '')}/admin/create-license`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-admin-secret': adminSecret,
     },
-    body: JSON.stringify({ key, feature }),
+    body: JSON.stringify({ key, feature, duration }),
   });
 
   const json = await response.json();
@@ -109,6 +115,7 @@ async function main() {
       adminSecret: args.adminSecret,
       key,
       feature: args.feature,
+      duration: args.duration,
     });
     created.push(result.key);
   }

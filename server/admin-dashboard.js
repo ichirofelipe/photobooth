@@ -62,6 +62,15 @@ export function renderAdminDashboardPage() {
               Count
               <input name="count" type="number" min="1" max="50" value="1" />
             </label>
+            <label id="duration-field">
+              Premium duration
+              <select name="duration">
+                <option value="30d">1 month</option>
+                <option value="90d">3 months</option>
+                <option value="180d">6 months</option>
+                <option value="365d">1 year</option>
+              </select>
+            </label>
             <label>
               Customer email or name
               <input name="customerEmail" type="text" placeholder="optional" />
@@ -147,6 +156,7 @@ export function renderAdminDashboardPage() {
                 <th>Key</th>
                 <th>Feature</th>
                 <th>Status</th>
+                <th>Expiration</th>
                 <th>Device</th>
                 <th>Customer / Note</th>
                 <th>Activity</th>
@@ -172,6 +182,7 @@ export function renderAdminDashboardPage() {
         template_editor: 'Template Editor',
         premium_bundle: 'Premium Bundle'
       };
+      const premiumFeatures = new Set(['qr_download', 'template_editor', 'premium_bundle']);
 
       const $ = (id) => document.getElementById(id);
 
@@ -191,6 +202,17 @@ export function renderAdminDashboardPage() {
 
       function formValues(form) {
         return Object.fromEntries(new FormData(form).entries());
+      }
+
+      function updateDurationField() {
+        const form = $('create-form');
+        const feature = form.elements.feature.value;
+        const duration = form.elements.duration;
+        const field = $('duration-field');
+        const premium = premiumFeatures.has(feature);
+        field.style.display = premium ? 'grid' : 'none';
+        duration.disabled = !premium;
+        duration.required = premium;
       }
 
       function buildQuery() {
@@ -243,10 +265,22 @@ export function renderAdminDashboardPage() {
             'Created: ' + formatDate(license.createdAt) + '<br>' +
             'Activated: ' + formatDate(license.lastActivatedAt) + '<br>' +
             'Transferred: ' + formatDate(license.lastTransferredAt);
+          const status = license.effectiveStatus || license.status;
+          const rawStatus =
+            license.effectiveStatus && license.effectiveStatus !== license.status
+              ? '<small>Stored: ' + escapeHtml(license.status) + '</small>'
+              : '';
+          const expiration =
+            license.feature === 'base_app'
+              ? 'No expiry'
+              : license.expiresAt
+                ? formatDate(license.expiresAt)
+                : 'Legacy / no expiry';
           return '<tr>' +
             '<td><code>' + escapeHtml(license.licenseKey) + '</code><small>' + escapeHtml(license.licenseId) + '</small></td>' +
             '<td>' + escapeHtml(features[license.feature] || license.feature) + '<small>' + escapeHtml(license.source) + '</small></td>' +
-            '<td><span class="status ' + escapeHtml(license.status) + '">' + escapeHtml(license.status) + '</span></td>' +
+            '<td><span class="status ' + escapeHtml(status) + '">' + escapeHtml(status) + '</span>' + rawStatus + '</td>' +
+            '<td class="activity">' + escapeHtml(expiration) + '</td>' +
             '<td class="device">' + escapeHtml(bound) + '</td>' +
             '<td>' + (note || '<span class="muted">None</span>') + '</td>' +
             '<td class="activity">' + activity + '</td>' +
@@ -259,12 +293,15 @@ export function renderAdminDashboardPage() {
           '</tr>';
         });
         $('license-rows').innerHTML =
-          rows.join('') || '<tr><td colspan="7" class="empty">No licenses match the current filters.</td></tr>';
+          rows.join('') || '<tr><td colspan="8" class="empty">No licenses match the current filters.</td></tr>';
       }
 
       $('create-form').addEventListener('submit', async (event) => {
         event.preventDefault();
         const values = formValues(event.currentTarget);
+        if (!premiumFeatures.has(values.feature)) {
+          delete values.duration;
+        }
         $('create-result').textContent = 'Generating...';
         try {
           const result = await api('/admin/api/licenses', {
@@ -290,6 +327,7 @@ export function renderAdminDashboardPage() {
       });
 
       $('refresh-btn').addEventListener('click', loadLicenses);
+      $('create-form').elements.feature.addEventListener('change', updateDurationField);
       $('prev-page').addEventListener('click', async () => {
         state.offset = Math.max(0, state.offset - state.limit);
         await loadLicenses();
@@ -322,6 +360,7 @@ export function renderAdminDashboardPage() {
         }
       });
 
+      updateDurationField();
       loadLicenses().catch((error) => {
         $('list-summary').textContent = error.message;
       });

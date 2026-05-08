@@ -140,7 +140,14 @@ public class EntitlementManager {
                 while ((line = br.readLine()) != null) sb.append(line);
             }
 
-            JSONObject response = new JSONObject(sb.toString());
+            String responseBody = sb.toString().trim();
+            if (!responseBody.startsWith("{")) {
+                throw new IOException(
+                        "Activation server returned an unexpected response. Check that the app activation server URL points to the Render service root."
+                );
+            }
+
+            JSONObject response = new JSONObject(responseBody);
             if (status >= 400) {
                 throw new IOException("Server error " + status + ": "
                         + response.optString("error", "unknown"));

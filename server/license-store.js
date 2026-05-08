@@ -546,7 +546,16 @@ function normalizeListOptions(options = {}) {
 
 function recordMatchesListOptions(record, filters) {
   if (filters.feature && record.feature !== filters.feature) return false;
-  if (filters.status && record.status !== filters.status) return false;
+  if (filters.status) {
+    const effectiveStatus =
+      record.status === 'active' &&
+      record.feature !== 'base_app' &&
+      typeof record.currentPeriodEnd === 'number' &&
+      record.currentPeriodEnd <= Date.now()
+        ? 'expired'
+        : record.status;
+    if (effectiveStatus !== filters.status) return false;
+  }
   if (filters.source && record.source !== filters.source) return false;
   if (filters.boundState === 'bound' && !record.boundDeviceId) return false;
   if (filters.boundState === 'unbound' && record.boundDeviceId) return false;
@@ -578,7 +587,33 @@ function buildPostgresListWhere(filters) {
   }
 
   if (filters.feature) where.push(`feature = ${addValue(filters.feature)}`);
-  if (filters.status) where.push(`status = ${addValue(filters.status)}`);
+  if (filters.status === 'expired') {
+    const expiredStatus = addValue('expired');
+    const activeStatus = addValue('active');
+    const nowParam = addValue(Date.now());
+    where.push(`(
+      status = ${expiredStatus}
+      OR (
+        status = ${activeStatus}
+        AND feature <> 'base_app'
+        AND current_period_end IS NOT NULL
+        AND current_period_end <= ${nowParam}
+      )
+    )`);
+  } else if (filters.status === 'active') {
+    const activeStatus = addValue('active');
+    const nowParam = addValue(Date.now());
+    where.push(`(
+      status = ${activeStatus}
+      AND NOT (
+        feature <> 'base_app'
+        AND current_period_end IS NOT NULL
+        AND current_period_end <= ${nowParam}
+      )
+    )`);
+  } else if (filters.status) {
+    where.push(`status = ${addValue(filters.status)}`);
+  }
   if (filters.source) where.push(`source = ${addValue(filters.source)}`);
   if (filters.boundState === 'bound') where.push('bound_device_id IS NOT NULL');
   if (filters.boundState === 'unbound') where.push('bound_device_id IS NULL');
@@ -625,7 +660,7 @@ export async function createManualLicense(key, feature, options = {}) {
     providerPlanId: null,
     providerSessionId: null,
     boundDeviceId: null,
-    currentPeriodEnd: null,
+    currentPeriodEnd: numericOrNull(options.currentPeriodEnd),
     createdAt: now,
     updatedAt: now,
     lastActivatedAt: null,

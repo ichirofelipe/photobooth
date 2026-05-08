@@ -14,8 +14,9 @@ import { ALL_FEATURES } from '@/types';
 import { premiumFeaturesForTarget } from '@/config/premiumAccess';
 
 const IS_MOCK = import.meta.env.VITE_MOCK_ENTITLEMENTS === 'true';
-const ACTIVATION_SERVER_URL =
-  import.meta.env.VITE_ACTIVATION_SERVER_URL ?? 'http://localhost:3001';
+const ACTIVATION_SERVER_URL = (
+  import.meta.env.VITE_ACTIVATION_SERVER_URL?.trim() || 'http://localhost:3001'
+).replace(/\/+$/, '');
 const ACTIVATION_PUBLIC_KEY =
   import.meta.env.VITE_ACTIVATION_PUBLIC_KEY_BASE64 ?? '';
 
@@ -213,6 +214,19 @@ function normalizeActivationError(err: unknown): string {
     normalized.includes('failed to resolve')
   ) {
     return ACTIVATION_ADDRESS_MESSAGE;
+  }
+
+  if (
+    normalized.includes('<!doctype') ||
+    normalized.includes('cannot be converted to jsonobject') ||
+    normalized.includes('unexpected response') ||
+    normalized.includes('non-json')
+  ) {
+    return 'The activation server returned an unexpected response. Check that the app activation server URL points to the Render service root, not /admin or another page.';
+  }
+
+  if (normalized.includes('activation key has expired')) {
+    return 'This activation key has expired. Contact support to renew access.';
   }
 
   return message;
@@ -518,6 +532,13 @@ export const useEntitlementStore = defineStore('entitlement', {
         if (item.reason === 'billing_inactive') {
           this.notices[item.feature] =
             'This premium activation is no longer active. Renew it or contact support to restore access.';
+          changed = true;
+          continue;
+        }
+
+        if (item.reason === 'expired') {
+          this.notices[item.feature] =
+            'This premium activation has expired. Contact support to renew access.';
           changed = true;
           continue;
         }
