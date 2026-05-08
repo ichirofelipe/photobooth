@@ -70,7 +70,9 @@ export function renderAdminDashboardPage() {
                 <option value="180d">6 months</option>
                 <option value="365d">1 year</option>
               </select>
+              <span id="duration-preview" class="field-hint"></span>
             </label>
+            <p id="base-expiry-note" class="field-note wide">Base App keys do not expire.</p>
             <label>
               Customer email or name
               <input name="customerEmail" type="text" placeholder="optional" />
@@ -183,6 +185,12 @@ export function renderAdminDashboardPage() {
         premium_bundle: 'Premium Bundle'
       };
       const premiumFeatures = new Set(['qr_download', 'template_editor', 'premium_bundle']);
+      const premiumDurations = {
+        '30d': { label: '1 month', days: 30 },
+        '90d': { label: '3 months', days: 90 },
+        '180d': { label: '6 months', days: 180 },
+        '365d': { label: '1 year', days: 365 }
+      };
 
       const $ = (id) => document.getElementById(id);
 
@@ -200,6 +208,13 @@ export function renderAdminDashboardPage() {
         return new Date(value).toLocaleString();
       }
 
+      function formatExpiration(license) {
+        if (license.feature === 'base_app') return 'No expiry';
+        if (license.expiresAt) return formatDate(license.expiresAt);
+        if (license.currentPeriodEnd) return formatDate(license.currentPeriodEnd);
+        return 'Legacy / no expiry';
+      }
+
       function formValues(form) {
         return Object.fromEntries(new FormData(form).entries());
       }
@@ -209,10 +224,20 @@ export function renderAdminDashboardPage() {
         const feature = form.elements.feature.value;
         const duration = form.elements.duration;
         const field = $('duration-field');
+        const baseNote = $('base-expiry-note');
+        const preview = $('duration-preview');
         const premium = premiumFeatures.has(feature);
         field.style.display = premium ? 'grid' : 'none';
+        baseNote.style.display = premium ? 'none' : 'block';
         duration.disabled = !premium;
         duration.required = premium;
+        if (premium) {
+          const selected = premiumDurations[duration.value] || premiumDurations['30d'];
+          const expiryDate = new Date(Date.now() + selected.days * 24 * 60 * 60 * 1000);
+          preview.textContent = 'Expires on ' + expiryDate.toLocaleString() + ' after generation.';
+        } else {
+          preview.textContent = '';
+        }
       }
 
       function buildQuery() {
@@ -270,12 +295,7 @@ export function renderAdminDashboardPage() {
             license.effectiveStatus && license.effectiveStatus !== license.status
               ? '<small>Stored: ' + escapeHtml(license.status) + '</small>'
               : '';
-          const expiration =
-            license.feature === 'base_app'
-              ? 'No expiry'
-              : license.expiresAt
-                ? formatDate(license.expiresAt)
-                : 'Legacy / no expiry';
+          const expiration = formatExpiration(license);
           return '<tr>' +
             '<td><code>' + escapeHtml(license.licenseKey) + '</code><small>' + escapeHtml(license.licenseId) + '</small></td>' +
             '<td>' + escapeHtml(features[license.feature] || license.feature) + '<small>' + escapeHtml(license.source) + '</small></td>' +
@@ -308,10 +328,19 @@ export function renderAdminDashboardPage() {
             method: 'POST',
             body: JSON.stringify(values)
           });
+          const generatedRows = result.licenses.map((item) => {
+            return '<tr>' +
+              '<td><code>' + escapeHtml(item.licenseKey) + '</code></td>' +
+              '<td>' + escapeHtml(features[item.feature] || item.feature) + '</td>' +
+              '<td>' + escapeHtml(formatExpiration(item)) + '</td>' +
+            '</tr>';
+          }).join('');
           $('create-result').innerHTML =
-            '<p class="ok">Created ' + result.licenses.length + ' key(s):</p><pre>' +
-            result.licenses.map((item) => item.licenseKey).join('\\n') +
-            '</pre>';
+            '<p class="ok">Created ' + result.licenses.length + ' key(s):</p>' +
+            '<div class="generated-table-wrap"><table class="generated-table">' +
+              '<thead><tr><th>Key</th><th>Feature</th><th>Expiration</th></tr></thead>' +
+              '<tbody>' + generatedRows + '</tbody>' +
+            '</table></div>';
           state.offset = 0;
           await loadLicenses();
         } catch (error) {
@@ -328,6 +357,7 @@ export function renderAdminDashboardPage() {
 
       $('refresh-btn').addEventListener('click', loadLicenses);
       $('create-form').elements.feature.addEventListener('change', updateDurationField);
+      $('create-form').elements.duration.addEventListener('change', updateDurationField);
       $('prev-page').addEventListener('click', async () => {
         state.offset = Math.max(0, state.offset - state.limit);
         await loadLicenses();
@@ -491,12 +521,42 @@ function adminStyles() {
     .result {
       margin-top: 12px;
     }
+    .field-hint {
+      color: #0f766e;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+    .field-note {
+      margin: 0;
+      border: 1px solid rgba(14, 173, 185, 0.22);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: rgba(14, 173, 185, 0.08);
+      color: #0f766e;
+      font-size: 13px;
+      font-weight: 800;
+    }
     pre {
       overflow: auto;
       padding: 12px;
       border-radius: 10px;
       background: #111827;
       color: #fff;
+    }
+    .generated-table-wrap {
+      overflow-x: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+    }
+    .generated-table {
+      min-width: 640px;
+      background: #fff;
+    }
+    .generated-table th,
+    .generated-table td {
+      padding: 10px 12px;
     }
     .ok {
       color: #15803d;
