@@ -185,6 +185,7 @@ app.post('/admin/api/licenses', requireAdminApi, async (req, res) => {
     const licenseOptions = {
       customerEmail,
       adminNote,
+      activationDurationMs: durationResult.activationDurationMs,
       currentPeriodEnd: durationResult.currentPeriodEnd,
     };
     for (let i = 0; i < count; i += 1) {
@@ -420,7 +421,8 @@ app.post('/activate', activateLimiter, async (req, res) => {
     });
   }
 
-  const { license: boundLicense, transferred } = await bindLicenseToDevice(license, deviceId);
+  const periodReadyLicense = await startManualActivationPeriodIfNeeded(license);
+  const { license: boundLicense, transferred } = await bindLicenseToDevice(periodReadyLicense, deviceId);
   const entitlements = grantedFeatures.map((grantedFeature) =>
     makeEntitlement(deviceId, boundLicense, grantedFeature)
   );
@@ -462,7 +464,8 @@ app.post('/sync', async (req, res) => {
 
     const candidate = deviceLicense && canIssueEntitlement(deviceLicense) ? deviceLicense : null;
     if (candidate) {
-      activeEntitlements.push(makeEntitlement(deviceId, candidate, feature));
+      const periodReadyLicense = await startManualActivationPeriodIfNeeded(candidate);
+      activeEntitlements.push(makeEntitlement(deviceId, periodReadyLicense, feature));
       continue;
     }
 
@@ -511,6 +514,7 @@ app.post('/admin/create-license', async (req, res) => {
 
   try {
     const record = await createManualLicense(key, feature, {
+      activationDurationMs: durationResult.activationDurationMs,
       currentPeriodEnd: durationResult.currentPeriodEnd,
     });
     return res.json({
@@ -519,6 +523,7 @@ app.post('/admin/create-license', async (req, res) => {
       feature: record.feature,
       source: record.source,
       status: record.status,
+      activationDurationMs: record.activationDurationMs,
       currentPeriodEnd: record.currentPeriodEnd,
     });
   } catch (error) {
@@ -819,7 +824,7 @@ function resolveManualLicenseExpiration(feature, duration) {
     if (duration) {
       return { error: 'Base App keys do not expire. Do not set a duration.' };
     }
-    return { currentPeriodEnd: null };
+    return { activationDurationMs: null, currentPeriodEnd: null };
   }
 
   if (!duration) {
@@ -831,7 +836,27 @@ function resolveManualLicenseExpiration(feature, duration) {
     return { error: 'Invalid premium key duration. Use 30d, 90d, 180d, or 365d.' };
   }
 
-  return { currentPeriodEnd: Date.now() + durationMs };
+  return { activationDurationMs: durationMs, currentPeriodEnd: null };
+}
+
+async function startManualActivationPeriodIfNeeded(license) {
+  if (
+    license.source !== 'manual' ||
+    license.feature === 'base_app' ||
+    typeof license.activationDurationMs !== 'number' ||
+    typeof license.currentPeriodEnd === 'number'
+  ) {
+    return license;
+  }
+
+  const now = Date.now();
+  const updated = {
+    ...license,
+    currentPeriodEnd: now + license.activationDurationMs,
+    updatedAt: now,
+  };
+  await saveLicense(updated);
+  return updated;
 }
 
 function isEffectivelyExpired(license) {

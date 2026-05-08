@@ -45,6 +45,32 @@ function numericOrNull(value) {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
+function normalizePeriodFields({
+  source,
+  feature,
+  currentPeriodEnd,
+  activationDurationMs,
+  lastActivatedAt,
+  createdAt,
+}) {
+  if (
+    source === 'manual' &&
+    feature !== 'base_app' &&
+    typeof activationDurationMs !== 'number' &&
+    typeof currentPeriodEnd === 'number' &&
+    typeof lastActivatedAt !== 'number' &&
+    typeof createdAt === 'number' &&
+    currentPeriodEnd > createdAt
+  ) {
+    return {
+      activationDurationMs: currentPeriodEnd - createdAt,
+      currentPeriodEnd: null,
+    };
+  }
+
+  return { activationDurationMs, currentPeriodEnd };
+}
+
 function licenseIdForKey(key) {
   return crypto.createHash('sha256').update(key).digest('hex').slice(0, 24);
 }
@@ -55,11 +81,23 @@ function normalizeLicense(licenseKey, raw) {
 
   if (!isValidLicenseFeature(feature)) return null;
 
+  const source = raw.source === 'subscription' ? 'subscription' : 'manual';
+  const createdAt = numericOrNull(raw.createdAt) ?? now;
+  const lastActivatedAt = numericOrNull(raw.lastActivatedAt);
+  const period = normalizePeriodFields({
+    source,
+    feature,
+    activationDurationMs: numericOrNull(raw.activationDurationMs),
+    currentPeriodEnd: numericOrNull(raw.currentPeriodEnd),
+    lastActivatedAt,
+    createdAt,
+  });
+
   return {
     licenseKey,
     licenseId: raw.licenseId || licenseIdForKey(licenseKey),
     feature,
-    source: raw.source === 'subscription' ? 'subscription' : 'manual',
+    source,
     status: raw.status || 'active',
     customerEmail: jsonNullIfEmpty(raw.customerEmail),
     adminNote: jsonNullIfEmpty(raw.adminNote),
@@ -77,14 +115,15 @@ function normalizeLicense(licenseKey, raw) {
       jsonNullIfEmpty(raw.providerSessionId) ??
       jsonNullIfEmpty(raw.xenditSessionId),
     boundDeviceId: jsonNullIfEmpty(raw.boundDeviceId),
-    currentPeriodEnd: numericOrNull(raw.currentPeriodEnd),
-    createdAt: numericOrNull(raw.createdAt) ?? now,
+    activationDurationMs: period.activationDurationMs,
+    currentPeriodEnd: period.currentPeriodEnd,
+    createdAt,
     updatedAt:
       numericOrNull(raw.updatedAt) ??
-      numericOrNull(raw.lastActivatedAt) ??
-      numericOrNull(raw.createdAt) ??
+      lastActivatedAt ??
+      createdAt ??
       now,
-    lastActivatedAt: numericOrNull(raw.lastActivatedAt),
+    lastActivatedAt,
     lastTransferredAt: numericOrNull(raw.lastTransferredAt),
   };
 }
@@ -102,7 +141,8 @@ function serializeLicense(record) {
     providerPlanId: record.providerPlanId,
     providerSessionId: record.providerSessionId,
     boundDeviceId: record.boundDeviceId,
-    currentPeriodEnd: record.currentPeriodEnd,
+    activationDurationMs: numericOrNull(record.activationDurationMs),
+    currentPeriodEnd: numericOrNull(record.currentPeriodEnd),
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
     lastActivatedAt: record.lastActivatedAt,
@@ -166,11 +206,25 @@ function createPool() {
 function rowToLicense(row) {
   if (!row) return null;
 
+  const source = row.source === 'subscription' ? 'subscription' : 'manual';
+  const createdAt = Number(row.created_at);
+  const lastActivatedAt =
+    row.last_activated_at === null ? null : Number(row.last_activated_at);
+  const period = normalizePeriodFields({
+    source,
+    feature: row.feature,
+    activationDurationMs:
+      row.activation_duration_ms === null ? null : Number(row.activation_duration_ms),
+    currentPeriodEnd: row.current_period_end === null ? null : Number(row.current_period_end),
+    lastActivatedAt,
+    createdAt,
+  });
+
   return {
     licenseKey: row.license_key,
     licenseId: row.license_id,
     feature: row.feature,
-    source: row.source,
+    source,
     status: row.status,
     customerEmail: row.customer_email,
     adminNote: row.admin_note ?? null,
@@ -182,10 +236,11 @@ function rowToLicense(row) {
     providerSessionId:
       row.provider_session_id ?? row.xendit_session_id ?? null,
     boundDeviceId: row.bound_device_id,
-    currentPeriodEnd: row.current_period_end === null ? null : Number(row.current_period_end),
-    createdAt: Number(row.created_at),
+    activationDurationMs: period.activationDurationMs,
+    currentPeriodEnd: period.currentPeriodEnd,
+    createdAt,
     updatedAt: Number(row.updated_at),
-    lastActivatedAt: row.last_activated_at === null ? null : Number(row.last_activated_at),
+    lastActivatedAt,
     lastTransferredAt: row.last_transferred_at === null ? null : Number(row.last_transferred_at),
   };
 }
@@ -209,6 +264,7 @@ async function ensurePostgresSchema() {
         provider_plan_id TEXT UNIQUE,
         provider_session_id TEXT,
         bound_device_id TEXT,
+        activation_duration_ms BIGINT,
         current_period_end BIGINT,
         created_at BIGINT NOT NULL,
         updated_at BIGINT NOT NULL,
@@ -222,7 +278,8 @@ async function ensurePostgresSchema() {
       ADD COLUMN IF NOT EXISTS billing_provider TEXT,
       ADD COLUMN IF NOT EXISTS provider_customer_id TEXT,
       ADD COLUMN IF NOT EXISTS provider_plan_id TEXT,
-      ADD COLUMN IF NOT EXISTS provider_session_id TEXT
+      ADD COLUMN IF NOT EXISTS provider_session_id TEXT,
+      ADD COLUMN IF NOT EXISTS activation_duration_ms BIGINT
     `);
     await client.query(`
       CREATE INDEX IF NOT EXISTS idx_activation_licenses_feature_device
@@ -258,6 +315,7 @@ async function ensurePostgresSchema() {
             provider_plan_id,
             provider_session_id,
             bound_device_id,
+            activation_duration_ms,
             current_period_end,
             created_at,
             updated_at,
@@ -268,7 +326,7 @@ async function ensurePostgresSchema() {
             $1, $2, $3, $4, $5,
             $6, $7, $8, $9, $10,
             $11, $12, $13, $14, $15,
-            $16, $17
+            $16, $17, $18
           )
           ON CONFLICT (license_key) DO NOTHING
         `,
@@ -285,6 +343,7 @@ async function ensurePostgresSchema() {
           record.providerPlanId,
           record.providerSessionId,
           record.boundDeviceId,
+          record.activationDurationMs,
           record.currentPeriodEnd,
           record.createdAt,
           record.updatedAt,
@@ -335,6 +394,7 @@ async function saveRecord(record) {
           provider_plan_id,
           provider_session_id,
           bound_device_id,
+          activation_duration_ms,
           current_period_end,
           created_at,
           updated_at,
@@ -345,7 +405,7 @@ async function saveRecord(record) {
           $1, $2, $3, $4, $5,
           $6, $7, $8, $9, $10,
           $11, $12, $13, $14, $15,
-          $16, $17
+          $16, $17, $18
         )
         ON CONFLICT (license_key) DO UPDATE SET
           license_id = EXCLUDED.license_id,
@@ -359,6 +419,7 @@ async function saveRecord(record) {
           provider_plan_id = EXCLUDED.provider_plan_id,
           provider_session_id = EXCLUDED.provider_session_id,
           bound_device_id = EXCLUDED.bound_device_id,
+          activation_duration_ms = EXCLUDED.activation_duration_ms,
           current_period_end = EXCLUDED.current_period_end,
           created_at = EXCLUDED.created_at,
           updated_at = EXCLUDED.updated_at,
@@ -378,7 +439,8 @@ async function saveRecord(record) {
         record.providerPlanId,
         record.providerSessionId,
         record.boundDeviceId,
-        record.currentPeriodEnd,
+        numericOrNull(record.activationDurationMs),
+        numericOrNull(record.currentPeriodEnd),
         record.createdAt,
         record.updatedAt,
         record.lastActivatedAt,
@@ -598,6 +660,12 @@ function buildPostgresListWhere(filters) {
         AND feature <> 'base_app'
         AND current_period_end IS NOT NULL
         AND current_period_end <= ${nowParam}
+        AND NOT (
+          source = 'manual'
+          AND last_activated_at IS NULL
+          AND activation_duration_ms IS NULL
+          AND current_period_end > created_at
+        )
       )
     )`);
   } else if (filters.status === 'active') {
@@ -609,6 +677,12 @@ function buildPostgresListWhere(filters) {
         feature <> 'base_app'
         AND current_period_end IS NOT NULL
         AND current_period_end <= ${nowParam}
+        AND NOT (
+          source = 'manual'
+          AND last_activated_at IS NULL
+          AND activation_duration_ms IS NULL
+          AND current_period_end > created_at
+        )
       )
     )`);
   } else if (filters.status) {
@@ -660,6 +734,7 @@ export async function createManualLicense(key, feature, options = {}) {
     providerPlanId: null,
     providerSessionId: null,
     boundDeviceId: null,
+    activationDurationMs: numericOrNull(options.activationDurationMs),
     currentPeriodEnd: numericOrNull(options.currentPeriodEnd),
     createdAt: now,
     updatedAt: now,
@@ -714,6 +789,7 @@ export async function createOrUpdateSubscriptionLicense({
       providerCustomerId: jsonNullIfEmpty(providerCustomerId) ?? existing.providerCustomerId,
       providerPlanId: jsonNullIfEmpty(providerPlanId) ?? existing.providerPlanId,
       providerSessionId: jsonNullIfEmpty(providerSessionId) ?? existing.providerSessionId,
+      activationDurationMs: null,
       currentPeriodEnd: numericOrNull(currentPeriodEnd) ?? existing.currentPeriodEnd,
       updatedAt: now,
     };
@@ -736,6 +812,7 @@ export async function createOrUpdateSubscriptionLicense({
     providerPlanId: jsonNullIfEmpty(providerPlanId),
     providerSessionId: jsonNullIfEmpty(providerSessionId),
     boundDeviceId: null,
+    activationDurationMs: null,
     currentPeriodEnd: numericOrNull(currentPeriodEnd),
     createdAt: now,
     updatedAt: now,

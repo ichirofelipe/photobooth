@@ -208,10 +208,20 @@ export function renderAdminDashboardPage() {
         return new Date(value).toLocaleString();
       }
 
+      function durationLabelFromMs(value) {
+        const match = Object.values(premiumDurations).find((duration) => {
+          return duration.days * 24 * 60 * 60 * 1000 === value;
+        });
+        return match ? match.label : Math.round(value / (24 * 60 * 60 * 1000)) + ' days';
+      }
+
       function formatExpiration(license) {
         if (license.feature === 'base_app') return 'No expiry';
         if (license.expiresAt) return formatDate(license.expiresAt);
         if (license.currentPeriodEnd) return formatDate(license.currentPeriodEnd);
+        if (license.activationDurationMs) {
+          return 'Starts on activation (' + durationLabelFromMs(license.activationDurationMs) + ')';
+        }
         return 'Legacy / no expiry';
       }
 
@@ -233,8 +243,8 @@ export function renderAdminDashboardPage() {
         duration.required = premium;
         if (premium) {
           const selected = premiumDurations[duration.value] || premiumDurations['30d'];
-          const expiryDate = new Date(Date.now() + selected.days * 24 * 60 * 60 * 1000);
-          preview.textContent = 'Expires on ' + expiryDate.toLocaleString() + ' after generation.';
+          preview.textContent =
+            selected.label + ' starts on the customer\\'s first successful activation.';
         } else {
           preview.textContent = '';
         }

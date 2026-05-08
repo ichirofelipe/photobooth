@@ -56,7 +56,8 @@ function usage() {
   console.log(
     'Usage: npm run activation:create-license -- --feature <base_app|qr_download|template_editor|premium_bundle> [--duration <30d|90d|180d|365d>] [--count 1] [--key YOUR-KEY]'
   );
-  console.log('Premium features require --duration. Base app keys must not include --duration.');
+  console.log('Premium features require --duration. The duration starts on first activation.');
+  console.log('Base app keys must not include --duration.');
   console.log(
     'Env: auto-loads server/activation-server.env and root .env, or use --admin-secret / --server.'
   );
