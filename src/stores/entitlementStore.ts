@@ -23,10 +23,8 @@ const ACTIVATION_PUBLIC_KEY =
 const MOCK_EXPIRES_AT = Date.now() + 365 * 24 * 60 * 60 * 1000;
 const NOTICE_STORAGE_KEY = 'entitlement_notices_v1';
 const LICENSE_REF_STORAGE_KEY = 'entitlement_license_refs_v1';
-const ACTIVATION_WAKE_MESSAGE =
-  'The activation server may still be waking up. Please wait 30-60 seconds, then tap Activate again.';
-const ACTIVATION_ADDRESS_MESSAGE =
-  'The activation server address cannot be reached. Check your internet connection or contact support.';
+const ACTIVATION_TEMPORARY_UNAVAILABLE_MESSAGE =
+  'Activation server is temporarily unavailable. Connect to the internet and try again.';
 
 let initPromise: Promise<void> | null = null;
 
@@ -203,7 +201,7 @@ function normalizeActivationError(err: unknown): string {
     normalized.includes('failed to connect') ||
     normalized.includes('connection reset')
   ) {
-    return ACTIVATION_WAKE_MESSAGE;
+    return ACTIVATION_TEMPORARY_UNAVAILABLE_MESSAGE;
   }
 
   if (
@@ -213,7 +211,7 @@ function normalizeActivationError(err: unknown): string {
     normalized.includes('name not resolved') ||
     normalized.includes('failed to resolve')
   ) {
-    return ACTIVATION_ADDRESS_MESSAGE;
+    return ACTIVATION_TEMPORARY_UNAVAILABLE_MESSAGE;
   }
 
   if (
@@ -230,6 +228,10 @@ function normalizeActivationError(err: unknown): string {
   }
 
   return message;
+}
+
+function isTemporaryUnavailableMessage(message: string): boolean {
+  return message === ACTIVATION_TEMPORARY_UNAVAILABLE_MESSAGE;
 }
 
 export const useEntitlementStore = defineStore('entitlement', {
@@ -396,6 +398,11 @@ export const useEntitlementStore = defineStore('entitlement', {
         this._applyRevocationNotices(revoked, previousRecords);
       } catch (err) {
         console.warn('[entitlements] Sync error (will retry on next launch):', err);
+        const message = normalizeActivationError(err);
+        if (!this.isValid('base_app') && isTemporaryUnavailableMessage(message)) {
+          this.notices.base_app = message;
+          writeStoredNotices(this.notices);
+        }
       }
     },
 

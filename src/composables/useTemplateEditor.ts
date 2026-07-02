@@ -5,20 +5,33 @@ import type { FrameTemplate, RectData, VariationData } from '@/types';
 
 const PREVIEW_MAX_W = 380;
 const PREVIEW_MAX_H = 320;
+export const MAX_TEMPLATE_IMAGES = 4;
 
 function createDefaultVariation(imageCount: number): VariationData {
+  const { copy, slotCount } = getDefaultVariationShape(imageCount);
   const imagesData: RectData[] = [];
-  for (let i = 0; i < imageCount; i++) {
+  for (let i = 0; i < slotCount; i++) {
     imagesData.push({ x: 10, y: 50 + i * 140, width: 200, height: 130 });
   }
   return {
     imgSrc: '',
-    copy: 1,
+    copy,
     headerData: { x: 0, y: 0, width: 200, height: 200 },
     footerData: { x: 50, y: 400, width: 120, height: 30 },
     imagesData,
   };
 }
+
+function getDefaultVariationShape(imageCount: number): { copy: number; slotCount: number } {
+  const safeImageCount = Math.max(1, Math.floor(imageCount || 1));
+  for (let slotCount = Math.min(safeImageCount, MAX_TEMPLATE_IMAGES); slotCount >= 1; slotCount--) {
+    if (safeImageCount % slotCount === 0) {
+      return { copy: safeImageCount / slotCount, slotCount };
+    }
+  }
+  return { copy: 1, slotCount: Math.min(safeImageCount, MAX_TEMPLATE_IMAGES) };
+}
+
 
 function createDefaultTemplate(): FrameTemplate {
   return {
@@ -26,6 +39,7 @@ function createDefaultTemplate(): FrameTemplate {
     source: 'custom',
     imgSrc: '',
     label: 'New Template',
+    headerEnabled: true,
     baseData: { width: 750, height: 500 },
     frameData: { width: 375, height: 500, strokeSize: 0.5, imageCount: 2, rotate: false },
     variation: [createDefaultVariation(2)],
@@ -34,6 +48,22 @@ function createDefaultTemplate(): FrameTemplate {
 
 function deepClone<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
+}
+
+function createTemplateFromStarter(starter: FrameTemplate): FrameTemplate {
+  const template = deepClone(starter);
+  return {
+    ...template,
+    id: uuidv4(),
+    source: 'custom',
+    imgSrc: '',
+    label: `Custom ${starter.label}`,
+    headerEnabled: starter.headerEnabled ?? true,
+    variation: template.variation.map((variation) => ({
+      ...variation,
+      imgSrc: '',
+    })),
+  };
 }
 
 interface ValidationResult {
@@ -54,16 +84,22 @@ function validateTemplate(t: FrameTemplate): ValidationResult {
   if (t.frameData.strokeSize < 0) errors.push('Stroke size cannot be negative.');
   if (t.frameData.imageCount < 1) errors.push('Image count must be at least 1.');
   if (t.variation.length === 0) errors.push('At least one variation is required.');
+  const headerEnabled = t.headerEnabled !== false;
 
   t.variation.forEach((v, vi) => {
     if (v.copy < 1) errors.push(`Variation ${vi + 1}: copy must be >= 1.`);
+    if (v.imagesData.length > MAX_TEMPLATE_IMAGES) {
+      errors.push(`Variation ${vi + 1}: image slots cannot exceed ${MAX_TEMPLATE_IMAGES} per variation.`);
+    }
     const expectedImages = v.imagesData.length * v.copy;
     if (expectedImages !== t.frameData.imageCount) {
       errors.push(
         `Variation ${vi + 1}: images (${v.imagesData.length}) × copy (${v.copy}) = ${expectedImages}, expected ${t.frameData.imageCount}.`
       );
     }
-    const allRects = [v.headerData, v.footerData, ...v.imagesData];
+    const allRects = headerEnabled
+      ? [v.headerData, v.footerData, ...v.imagesData]
+      : [v.footerData, ...v.imagesData];
     allRects.forEach((rect) => {
       if (rect.width <= 0 || rect.height <= 0) {
         errors.push(`Variation ${vi + 1}: all rects must have width/height > 0.`);
@@ -87,6 +123,7 @@ export interface TemplateEditorReturn {
 
   startEdit: (index: number) => void;
   startCreate: () => void;
+  startCreateFromTemplate: (template: FrameTemplate) => void;
   cancelEdit: () => void;
   saveEdit: () => Promise<boolean>;
 
@@ -166,6 +203,7 @@ export default function useTemplateEditor(): TemplateEditorReturn {
   function startEdit(index: number): void {
     editingIndex.value = index;
     editForm.value = deepClone(templateStore.allFrames[index]);
+    editForm.value.headerEnabled ??= true;
     selectedVariation.value = 0;
     validationErrors.value = [];
   }
@@ -173,6 +211,13 @@ export default function useTemplateEditor(): TemplateEditorReturn {
   function startCreate(): void {
     editingIndex.value = null;
     editForm.value = createDefaultTemplate();
+    selectedVariation.value = 0;
+    validationErrors.value = [];
+  }
+
+  function startCreateFromTemplate(template: FrameTemplate): void {
+    editingIndex.value = null;
+    editForm.value = createTemplateFromStarter(template);
     selectedVariation.value = 0;
     validationErrors.value = [];
   }
@@ -207,8 +252,7 @@ export default function useTemplateEditor(): TemplateEditorReturn {
 
   function addVariation(): void {
     if (!editForm.value) return;
-    const imgCount = editForm.value.frameData.imageCount;
-    editForm.value.variation.push(createDefaultVariation(imgCount));
+    editForm.value.variation.push(createDefaultVariation(editForm.value.frameData.imageCount));
     selectedVariation.value = editForm.value.variation.length - 1;
   }
 
@@ -224,6 +268,11 @@ export default function useTemplateEditor(): TemplateEditorReturn {
     if (!editForm.value) return;
     const v = editForm.value.variation[selectedVariation.value];
     if (!v) return;
+    if (v.imagesData.length >= MAX_TEMPLATE_IMAGES) {
+      validationErrors.value = [`Maximum ${MAX_TEMPLATE_IMAGES} image slots per variation.`];
+      return;
+    }
+    validationErrors.value = [];
     v.imagesData.push({ x: 10, y: 10, width: 100, height: 80 });
   }
 
@@ -246,6 +295,7 @@ export default function useTemplateEditor(): TemplateEditorReturn {
     currentVar,
     startEdit,
     startCreate,
+    startCreateFromTemplate,
     cancelEdit,
     saveEdit,
     addVariation,

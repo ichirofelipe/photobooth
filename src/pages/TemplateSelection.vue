@@ -11,8 +11,8 @@
         @click="appStore.setTemplate(item.originalIndex, item.frame.frameData.imageCount)"
       >
         <label class="primary-color">{{ item.frame.label }}</label>
-        <img v-if="item.frame.imgSrc" :src="item.frame.imgSrc" class="pb-template" />
-        <div v-else class="pb-template-placeholder">{{ item.frame.frameData.imageCount }} photos</div>
+        <TemplatePreview v-if="useRenderedTemplatePreviews || !item.frame.imgSrc" :template="item.frame" />
+        <img v-else :src="item.frame.imgSrc" class="pb-template" />
       </a>
     </div>
     <router-link v-if="selectedTemplateVisible" to="/camera" class="pb-button p-5"><i class="mdi mdi-camera"></i> Enter the PRIM experience</router-link>
@@ -25,10 +25,14 @@ import { computed } from 'vue';
 import { useAppStore } from '@/stores/appStore';
 import { useTemplateStore } from '@/stores/templateStore';
 import { useEntitlementStore } from '@/stores/entitlementStore';
+import TemplatePreview from '@/components/TemplatePreview.vue';
 
 const appStore = useAppStore();
 const templateStore = useTemplateStore();
 const entitlementStore = useEntitlementStore();
+
+// Testing switch: render built-in templates from their data instead of using PNG previews.
+const useRenderedTemplatePreviews = true;
 
 /**
  * When template_editor is not active, restrict to built-in templates only.
@@ -59,7 +63,7 @@ const selectedTemplateVisible = computed(() =>
   cursor: pointer;
   position: relative;
   height: 100%;
-  padding-bottom: 2.5em;
+  padding-bottom: 3em;
   display: flex;
 
   img {
@@ -78,42 +82,26 @@ const selectedTemplateVisible = computed(() =>
     white-space: nowrap;
     font-weight: bold;
     display: block;
-    bottom: -0.5em;
+    bottom: -1em;
     left: 50%;
     transform: translateX(-50%);
   }
 
   &:nth-child(even) img,
-  &:nth-child(even) .pb-template-placeholder {
+  &:nth-child(even) .pb-template-custom {
     transform: rotateZ(-4deg);
   }
 
   &:nth-child(odd) img,
-  &:nth-child(odd) .pb-template-placeholder {
+  &:nth-child(odd) .pb-template-custom {
     transform: rotateZ(4deg);
   }
 
   &.active img,
-  &.active .pb-template-placeholder {
+  &.active .pb-template-custom {
     transform: scale(1.1);
     filter: drop-shadow(0px 0px 10px $secondary-color);
   }
-}
-
-.pb-template-placeholder {
-  width: 15vw;
-  max-height: 35vh;
-  aspect-ratio: 3 / 4;
-  margin: auto;
-  background: #f0f0f0;
-  border: 2px dashed #bbb;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  color: #999;
-  filter: drop-shadow(3px 3px 5px rgba(0, 0, 0, 0.3));
 }
 
 .setup {

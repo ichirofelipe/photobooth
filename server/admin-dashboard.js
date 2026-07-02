@@ -65,11 +65,12 @@ export function renderAdminDashboardPage() {
             <label id="duration-field">
               Premium duration
               <select name="duration">
-                <option value="5m">5 minutes (testing only)</option>
                 <option value="30d">1 month</option>
                 <option value="90d">3 months</option>
                 <option value="180d">6 months</option>
                 <option value="365d">1 year</option>
+                <option value="none">No expiration</option>
+                <option value="5m">5 minutes (testing only)</option>
               </select>
               <span id="duration-preview" class="field-hint"></span>
             </label>
@@ -187,11 +188,12 @@ export function renderAdminDashboardPage() {
       };
       const premiumFeatures = new Set(['qr_download', 'template_editor', 'premium_bundle']);
       const premiumDurations = {
-        '5m': { label: '5 minutes (testing only)', ms: 5 * 60 * 1000 },
         '30d': { label: '1 month', ms: 30 * 24 * 60 * 60 * 1000 },
         '90d': { label: '3 months', ms: 90 * 24 * 60 * 60 * 1000 },
         '180d': { label: '6 months', ms: 180 * 24 * 60 * 60 * 1000 },
-        '365d': { label: '1 year', ms: 365 * 24 * 60 * 60 * 1000 }
+        '365d': { label: '1 year', ms: 365 * 24 * 60 * 60 * 1000 },
+        'none': { label: 'No expiration', ms: null },
+        '5m': { label: '5 minutes (testing only)', ms: 5 * 60 * 1000 }
       };
 
       const $ = (id) => document.getElementById(id);
@@ -226,7 +228,7 @@ export function renderAdminDashboardPage() {
         if (license.activationDurationMs) {
           return 'Starts on activation (' + durationLabelFromMs(license.activationDurationMs) + ')';
         }
-        return 'Legacy / no expiry';
+        return 'No expiry';
       }
 
       function formValues(form) {
@@ -247,8 +249,9 @@ export function renderAdminDashboardPage() {
         duration.required = premium;
         if (premium) {
           const selected = premiumDurations[duration.value] || premiumDurations['30d'];
-          preview.textContent =
-            selected.label + ' starts on the customer\\'s first successful activation.';
+          preview.textContent = selected.ms === null
+            ? 'This premium key can keep renewing 24-hour offline leases and does not expire by date.'
+            : selected.label + ' starts on the customer\\'s first successful activation.';
         } else {
           preview.textContent = '';
         }
@@ -323,6 +326,7 @@ export function renderAdminDashboardPage() {
               '<button data-action="status" data-key="' + escapeHtml(license.licenseKey) + '" data-status="canceled">Cancel</button>' +
               '<button data-action="status" data-key="' + escapeHtml(license.licenseKey) + '" data-status="expired">Expire</button>' +
               '<button data-action="unbind" data-key="' + escapeHtml(license.licenseKey) + '">Unbind</button>' +
+              '<button class="danger" data-action="delete" data-key="' + escapeHtml(license.licenseKey) + '">Delete</button>' +
             '</td>' +
           '</tr>';
         });
@@ -396,6 +400,15 @@ export function renderAdminDashboardPage() {
             await api('/admin/api/licenses/' + encodeURIComponent(key) + '/unbind', {
               method: 'POST',
               body: JSON.stringify({})
+            });
+          }
+          if (button.dataset.action === 'delete') {
+            const confirmed = confirm(
+              'Delete this activation key permanently? This cannot be undone.\\n\\nKey: ' + key
+            );
+            if (!confirmed) return;
+            await api('/admin/api/licenses/' + encodeURIComponent(key), {
+              method: 'DELETE'
             });
           }
           await loadLicenses();
@@ -654,6 +667,10 @@ function adminStyles() {
       background: #f3f4f6;
       color: #374151;
       font-size: 12px;
+    }
+    .actions button.danger {
+      background: rgba(185, 28, 28, 0.12);
+      color: #b91c1c;
     }
     .empty {
       text-align: center;

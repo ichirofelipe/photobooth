@@ -58,6 +58,7 @@ export interface FrameTemplate {
   source: 'builtin' | 'custom';
   imgSrc: string;
   label: string;
+  headerEnabled?: boolean;
   baseData: Dimensions;
   frameData: FrameData;
   variation: VariationData[];

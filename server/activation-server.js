@@ -20,6 +20,7 @@ import {
   bindLicenseToDevice,
   createManualLicense,
   createOrUpdateSubscriptionLicense,
+  deleteLicense,
   getDeviceLicense,
   getLatestSubscriptionLicenseForFeature,
   getLicenseByKey,
@@ -48,6 +49,7 @@ const PREMIUM_LICENSE_DURATIONS = {
   '180d': 180 * 24 * 60 * 60 * 1000,
   '365d': 365 * 24 * 60 * 60 * 1000,
 };
+const NO_EXPIRY_DURATION_VALUES = new Set(['none', 'no_expiry', 'never', 'lifetime']);
 const MANAGEMENT_LINK_TTL_MS = 60 * 60 * 1000;
 const ADMIN_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const ADMIN_SESSION_COOKIE = 'pb_admin_session';
@@ -236,6 +238,15 @@ app.patch('/admin/api/licenses/:licenseKey', requireAdminApi, async (req, res) =
 
 app.post('/admin/api/licenses/:licenseKey/unbind', requireAdminApi, async (req, res) => {
   const license = await unbindLicenseDevice(req.params.licenseKey);
+  if (!license) {
+    return res.status(404).json({ error: 'License not found.' });
+  }
+
+  return res.json({ success: true, license });
+});
+
+app.delete('/admin/api/licenses/:licenseKey', requireAdminApi, async (req, res) => {
+  const license = await deleteLicense(req.params.licenseKey);
   if (!license) {
     return res.status(404).json({ error: 'License not found.' });
   }
@@ -821,20 +832,27 @@ function isExpiringLicense(license) {
 }
 
 function resolveManualLicenseExpiration(feature, duration) {
+  const normalizedDuration = typeof duration === 'string' ? duration.trim().toLowerCase() : '';
+  const noExpiryRequested = NO_EXPIRY_DURATION_VALUES.has(normalizedDuration);
+
   if (feature === 'base_app') {
-    if (duration) {
+    if (normalizedDuration && !noExpiryRequested) {
       return { error: 'Base App keys do not expire. Do not set a duration.' };
     }
     return { activationDurationMs: null, currentPeriodEnd: null };
   }
 
-  if (!duration) {
+  if (noExpiryRequested) {
+    return { activationDurationMs: null, currentPeriodEnd: null };
+  }
+
+  if (!normalizedDuration) {
     return { error: 'Select an expiration duration for premium keys.' };
   }
 
-  const durationMs = PREMIUM_LICENSE_DURATIONS[duration];
+  const durationMs = PREMIUM_LICENSE_DURATIONS[normalizedDuration];
   if (!durationMs) {
-    return { error: 'Invalid premium key duration. Use 5m, 30d, 90d, 180d, or 365d.' };
+    return { error: 'Invalid premium key duration. Use none, 5m, 30d, 90d, 180d, or 365d.' };
   }
 
   return { activationDurationMs: durationMs, currentPeriodEnd: null };

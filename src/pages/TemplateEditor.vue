@@ -1,5 +1,5 @@
 <template>
-  <div id="parent" class="template-editor-page">
+  <div id="parent" class="template-editor-page" :class="{ 'te-is-dragging': dragState }">
     <h1 class="whitespace-nowrap tracking-wider">Template Editor</h1>
 
     <!-- ===== ACCESS GATE ===== -->
@@ -25,9 +25,15 @@
       <div class="te-grid">
         <div
           v-for="(frame, index) in templateStore.allFrames"
-          :key="index"
+          :key="frame.id"
           class="te-card"
-          :class="{ active: templateStore.activeIndices.includes(index) }"
+          :class="{
+            active: templateStore.activeIndices.includes(index),
+            dragging: isDraggingTemplate(index),
+            'drop-target': isTemplateDropTarget(index),
+          }"
+          :data-template-index="index"
+          @pointerenter="handleTemplateDragEnter(index)"
         >
           <div class="te-card-preview" :style="cardPreviewStyle(frame)">
             <div
@@ -40,6 +46,15 @@
             <span class="te-card-meta">{{ frame.frameData.imageCount }} photos | {{ frame.variation.length }} variation{{ frame.variation.length > 1 ? 's' : '' }}</span>
           </div>
           <div class="te-card-controls">
+            <button
+              class="te-btn-icon te-drag-handle"
+              type="button"
+              title="Drag to reorder template"
+              aria-label="Drag to reorder template"
+              @pointerdown="startTemplateDrag($event, index)"
+            >
+              <i class="mdi mdi-drag-horizontal"></i>
+            </button>
             <label class="te-toggle">
               <input
                 type="checkbox"
@@ -67,11 +82,70 @@
       <button
         v-if="templateStore.canCreateMore"
         class="pb-button p-5 te-create-btn"
-        @click="startCreate"
+        @click="openCreateChooser"
       >
         <i class="mdi mdi-plus-circle"></i> Create New Template
       </button>
       <p v-else class="te-limit-msg">Maximum 8 templates reached.</p>
+
+      <div
+        v-if="createChooserMode"
+        class="te-create-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Create template"
+        @click.self="closeCreateChooser"
+      >
+        <div class="te-create-dialog">
+          <template v-if="createChooserMode === 'choice'">
+            <h3>Create a Template</h3>
+            <p class="te-create-intro">
+              Start from a blank layout or use a default template as a friendly starting point.
+            </p>
+            <div class="te-create-options">
+              <button class="te-create-option" @click="handleStartScratch">
+                <i class="mdi mdi-shape-square-plus"></i>
+                <span>Start from Scratch</span>
+                <small>Use the current blank custom layout.</small>
+              </button>
+              <button class="te-create-option" @click="createChooserMode = 'starter'">
+                <i class="mdi mdi-view-carousel-outline"></i>
+                <span>Start from Default Template</span>
+                <small>Clone a built-in layout, then customize it.</small>
+              </button>
+            </div>
+            <button class="te-dialog-cancel" @click="closeCreateChooser">Cancel</button>
+          </template>
+
+          <template v-else>
+            <div class="te-create-dialog-head">
+              <div>
+                <h3>Choose a Starter</h3>
+                <p class="te-create-intro">The selected default will become a new custom template.</p>
+              </div>
+              <button class="te-dialog-cancel" @click="createChooserMode = 'choice'">Back</button>
+            </div>
+            <div class="te-starter-grid">
+              <button
+                v-for="frame in builtInStarterTemplates"
+                :key="frame.id"
+                class="te-starter-card"
+                @click="handleStartFromStarter(frame)"
+              >
+                <div class="te-starter-preview">
+                  <img v-if="frame.imgSrc" :src="frame.imgSrc" :alt="`${frame.label} preview`" />
+                  <div v-else class="te-starter-fallback" :style="cardPreviewStyle(frame)">
+                    <div class="te-card-frame" :style="cardFrameStyle(frame)"></div>
+                  </div>
+                </div>
+                <strong>{{ frame.label }}</strong>
+                <small>{{ frame.frameData.imageCount }} photos | {{ frame.variation.length }} variation{{ frame.variation.length > 1 ? 's' : '' }}</small>
+              </button>
+            </div>
+            <button class="te-dialog-cancel te-dialog-bottom-cancel" @click="closeCreateChooser">Cancel</button>
+          </template>
+        </div>
+      </div>
 
       <router-link to="/setup" class="pb-button p-5 te-back-btn"><i class="mdi mdi-arrow-left"></i> Back to Setup</router-link>
     </template>
@@ -90,7 +164,7 @@
             <div class="te-prev-frame" :style="frameStyle"></div>
             <!-- Header -->
             <div
-              v-if="currentVar"
+              v-if="currentVar && editForm.headerEnabled !== false"
               class="te-prev-header"
               :style="rectToStyle(currentVar.headerData)"
             >Header</div>
@@ -111,7 +185,7 @@
             </template>
           </div>
           <div class="te-preview-legend">
-            <span class="legend-header">Header</span>
+            <span v-if="editForm.headerEnabled !== false" class="legend-header">Header</span>
             <span class="legend-footer">Footer</span>
             <span class="legend-image">Image</span>
           </div>
@@ -162,13 +236,27 @@
               </div>
               <div class="te-field">
                 <label>Photos</label>
-                <input v-model.number="editForm.frameData.imageCount" type="number" min="1" step="1" class="te-input" />
+                <input
+                  v-model.number="editForm.frameData.imageCount"
+                  type="number"
+                  min="1"
+                  step="1"
+                  class="te-input"
+                />
               </div>
             </div>
+            <p class="te-inline-hint">Total photos can include copies. Each variation can use up to {{ MAX_TEMPLATE_IMAGES }} image slots.</p>
             <label class="te-checkbox">
               <input type="checkbox" v-model="editForm.frameData.rotate" />
               Rotate for print
             </label>
+            <label class="te-checkbox">
+              <input type="checkbox" v-model="editForm.headerEnabled" />
+              Show header on this template
+            </label>
+            <p v-if="editForm.headerEnabled === false" class="te-inline-hint">
+              Header position is kept, but the header will not appear in previews or output.
+            </p>
           </div>
 
           <!-- Variations -->
@@ -199,13 +287,15 @@
               </div>
 
               <!-- Header Rect -->
-              <h5>Header Position</h5>
-              <div class="te-rect-row">
-                <div class="te-field"><label>X</label><input v-model.number="currentVar.headerData.x" type="number" step="0.5" class="te-input" /></div>
-                <div class="te-field"><label>Y</label><input v-model.number="currentVar.headerData.y" type="number" step="0.5" class="te-input" /></div>
-                <div class="te-field"><label>W</label><input v-model.number="currentVar.headerData.width" type="number" min="1" step="0.5" class="te-input" /></div>
-                <div class="te-field"><label>H</label><input v-model.number="currentVar.headerData.height" type="number" min="1" step="0.5" class="te-input" /></div>
-              </div>
+              <template v-if="editForm.headerEnabled !== false">
+                <h5>Header Position</h5>
+                <div class="te-rect-row">
+                  <div class="te-field"><label>X</label><input v-model.number="currentVar.headerData.x" type="number" step="0.5" class="te-input" /></div>
+                  <div class="te-field"><label>Y</label><input v-model.number="currentVar.headerData.y" type="number" step="0.5" class="te-input" /></div>
+                  <div class="te-field"><label>W</label><input v-model.number="currentVar.headerData.width" type="number" min="1" step="0.5" class="te-input" /></div>
+                  <div class="te-field"><label>H</label><input v-model.number="currentVar.headerData.height" type="number" min="1" step="0.5" class="te-input" /></div>
+                </div>
+              </template>
 
               <!-- Footer Rect -->
               <h5>Footer Position</h5>
@@ -218,6 +308,9 @@
 
               <!-- Image Slots -->
               <h5>Image Slots</h5>
+              <p class="te-inline-hint">
+                {{ currentVar.imagesData.length }} / {{ MAX_TEMPLATE_IMAGES }} image slots used.
+              </p>
               <div
                 v-for="(img, idx) in currentVar.imagesData"
                 :key="idx"
@@ -240,7 +333,13 @@
                   <div class="te-field"><label>H</label><input v-model.number="img.height" type="number" min="1" step="0.5" class="te-input" /></div>
                 </div>
               </div>
-              <button class="te-add-slot-btn" @click="addImageSlot">+ Add Image Slot</button>
+              <button
+                v-if="currentVar.imagesData.length < MAX_TEMPLATE_IMAGES"
+                class="te-add-slot-btn"
+                @click="addImageSlot"
+              >
+                + Add Image Slot
+              </button>
             </template>
           </div>
 
@@ -261,13 +360,18 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onBeforeUnmount, ref } from 'vue';
 import { useTemplateStore } from '@/stores/templateStore';
 import { useEntitlementStore } from '@/stores/entitlementStore';
-import useTemplateEditor from '@/composables/useTemplateEditor';
+import { useAppStore } from '@/stores/appStore';
+import { useDesignStore } from '@/stores/designStore';
+import useTemplateEditor, { MAX_TEMPLATE_IMAGES } from '@/composables/useTemplateEditor';
 import type { FrameTemplate } from '@/types';
 
 const templateStore = useTemplateStore();
 const entitlementStore = useEntitlementStore();
+const appStore = useAppStore();
+const designStore = useDesignStore();
 
 const {
   editingIndex,
@@ -281,6 +385,7 @@ const {
   currentVar,
   startEdit,
   startCreate,
+  startCreateFromTemplate,
   cancelEdit,
   saveEdit,
   addVariation,
@@ -290,6 +395,12 @@ const {
   rectToStyle,
   frameStyle,
 } = useTemplateEditor();
+
+const createChooserMode = ref<'choice' | 'starter' | null>(null);
+const dragState = ref<{ fromIndex: number; targetIndex: number; pointerId: number } | null>(null);
+const builtInStarterTemplates = computed(() =>
+  templateStore.allFrames.filter((frame) => frame.source === 'builtin')
+);
 
 function cardPreviewStyle(frame: FrameTemplate): Record<string, string> {
   const maxW = 160;
@@ -324,6 +435,124 @@ async function handleDelete(index: number): Promise<void> {
   if (!confirm(`Delete "${templateStore.allFrames[index].label}"?`)) return;
   await templateStore.deleteTemplate(index);
 }
+
+function openCreateChooser(): void {
+  if (!templateStore.canCreateMore) return;
+  createChooserMode.value = 'choice';
+}
+
+function closeCreateChooser(): void {
+  createChooserMode.value = null;
+}
+
+function handleStartScratch(): void {
+  startCreate();
+  closeCreateChooser();
+}
+
+function handleStartFromStarter(frame: FrameTemplate): void {
+  startCreateFromTemplate(frame);
+  closeCreateChooser();
+}
+
+function remapIndexAfterMove(index: number, fromIndex: number, toIndex: number): number {
+  if (index === fromIndex) return toIndex;
+  if (fromIndex < toIndex && index > fromIndex && index <= toIndex) return index - 1;
+  if (fromIndex > toIndex && index >= toIndex && index < fromIndex) return index + 1;
+  return index;
+}
+
+function isDraggingTemplate(index: number): boolean {
+  return dragState.value?.fromIndex === index;
+}
+
+function isTemplateDropTarget(index: number): boolean {
+  return dragState.value !== null && dragState.value.fromIndex !== index && dragState.value.targetIndex === index;
+}
+
+function startTemplateDrag(event: PointerEvent, index: number): void {
+  if (event.pointerType === 'mouse' && event.button !== 0) return;
+  if (templateStore.allFrames.length <= 1) return;
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  dragState.value = {
+    fromIndex: index,
+    targetIndex: index,
+    pointerId: event.pointerId,
+  };
+
+  window.addEventListener('pointermove', handleTemplateDragMove);
+  window.addEventListener('pointerup', handleTemplateDragEnd);
+  window.addEventListener('pointercancel', cancelTemplateDrag);
+}
+
+function handleTemplateDragEnter(index: number): void {
+  if (!dragState.value) return;
+  dragState.value = { ...dragState.value, targetIndex: index };
+}
+
+function handleTemplateDragMove(event: PointerEvent): void {
+  if (!dragState.value || dragState.value.pointerId !== event.pointerId) return;
+
+  event.preventDefault();
+  const element = document.elementFromPoint(event.clientX, event.clientY);
+  const card = element instanceof Element
+    ? element.closest<HTMLElement>('[data-template-index]')
+    : null;
+  const targetIndex = Number(card?.dataset.templateIndex);
+
+  if (Number.isInteger(targetIndex) && targetIndex >= 0 && targetIndex < templateStore.allFrames.length) {
+    dragState.value = { ...dragState.value, targetIndex };
+  }
+}
+
+function handleTemplateDragEnd(event: PointerEvent): void {
+  void finishTemplateDrag(event);
+}
+
+async function finishTemplateDrag(event: PointerEvent): Promise<void> {
+  if (!dragState.value || dragState.value.pointerId !== event.pointerId) return;
+  event.preventDefault();
+
+  const { fromIndex, targetIndex } = dragState.value;
+  cleanupTemplateDrag();
+
+  if (fromIndex === targetIndex) return;
+  await persistTemplateMove(fromIndex, targetIndex);
+}
+
+function cancelTemplateDrag(): void {
+  cleanupTemplateDrag();
+}
+
+function cleanupTemplateDrag(): void {
+  dragState.value = null;
+  window.removeEventListener('pointermove', handleTemplateDragMove);
+  window.removeEventListener('pointerup', handleTemplateDragEnd);
+  window.removeEventListener('pointercancel', cancelTemplateDrag);
+}
+
+async function persistTemplateMove(fromIndex: number, toIndex: number): Promise<void> {
+  const selectedTemplateIndex = appStore.selectedTemplate?.id ?? null;
+  const currentSetupIndex = designStore.currentTemplateIndex;
+
+  const moved = await templateStore.moveTemplate(fromIndex, toIndex);
+  if (!moved) return;
+
+  if (selectedTemplateIndex !== null) {
+    const remappedSelectedIndex = remapIndexAfterMove(selectedTemplateIndex, fromIndex, toIndex);
+    const selectedFrame = templateStore.allFrames[remappedSelectedIndex];
+    if (selectedFrame) {
+      appStore.setTemplate(remappedSelectedIndex, selectedFrame.frameData.imageCount);
+    }
+  }
+
+  designStore.currentTemplateIndex = remapIndexAfterMove(currentSetupIndex, fromIndex, toIndex);
+}
+
+onBeforeUnmount(cleanupTemplateDrag);
 </script>
 
 <style lang="scss">
@@ -393,10 +622,19 @@ async function handleDelete(index: number): Promise<void> {
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   overflow: hidden;
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, opacity 0.2s, transform 0.2s;
 
   &.active {
     box-shadow: 0 0 0 2px $secondary-color, 0 2px 8px rgba(0, 0, 0, 0.12);
+  }
+
+  &.dragging {
+    opacity: 0.55;
+    transform: scale(0.98);
+  }
+
+  &.drop-target {
+    box-shadow: 0 0 0 2px $primary-color, 0 8px 18px rgba($primary-color, 0.2);
   }
 }
 
@@ -489,6 +727,27 @@ async function handleDelete(index: number): Promise<void> {
   font-size: 14px;
 }
 
+.te-drag-handle {
+  color: $secondary-color;
+  border-color: rgba($secondary-color, 0.45);
+  background: rgba($secondary-color, 0.08);
+  cursor: grab;
+  touch-action: none;
+
+  &:hover {
+    background: rgba($secondary-color, 0.14);
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.te-is-dragging {
+  cursor: grabbing;
+  user-select: none;
+}
+
 .te-create-btn {
   display: block;
   margin: 0 auto 10px;
@@ -506,6 +765,157 @@ async function handleDelete(index: number): Promise<void> {
   color: $border-color;
   font-size: 13px;
   margin-bottom: 10px;
+}
+
+.te-create-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(26, 26, 26, 0.45);
+}
+
+.te-create-dialog {
+  width: min(720px, 92vw);
+  max-height: 86vh;
+  overflow-y: auto;
+  background: $bg-color;
+  border: 2px solid $white;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  padding: 20px;
+  color: $text-color;
+
+  h3 {
+    margin: 0 0 6px;
+    color: $primary-color;
+    font-size: 20px;
+    font-weight: 800;
+  }
+}
+
+.te-create-intro {
+  margin: 0 0 16px;
+  color: $border-color;
+  font-size: 13px;
+}
+
+.te-create-options,
+.te-starter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.te-create-option,
+.te-starter-card {
+  width: 100%;
+  background: $white;
+  border: 1px solid rgba($secondary-color, 0.25);
+  border-radius: 10px;
+  color: $dark;
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: $secondary-color;
+    box-shadow: 0 8px 18px rgba(14, 173, 185, 0.18);
+    filter: none;
+  }
+
+  span,
+  strong,
+  small {
+    display: block;
+  }
+
+  small {
+    color: $border-color;
+    font-size: 11px;
+    font-weight: 500;
+  }
+}
+
+.te-create-option {
+  padding: 16px;
+
+  i {
+    display: block;
+    margin-bottom: 8px;
+    color: $secondary-color;
+    font-size: 28px;
+  }
+
+  span {
+    margin-bottom: 4px;
+    font-size: 15px;
+    font-weight: 800;
+  }
+}
+
+.te-dialog-cancel {
+  margin-top: 14px;
+  background: transparent;
+  border: 1px solid $border-color;
+  color: $border-color;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.04);
+    filter: none;
+  }
+}
+
+.te-create-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+
+  .te-dialog-cancel {
+    flex-shrink: 0;
+    margin-top: 0;
+  }
+}
+
+.te-dialog-bottom-cancel {
+  display: block;
+  margin-left: auto;
+}
+
+.te-starter-card {
+  padding: 12px;
+  text-align: center;
+
+  strong {
+    margin-top: 8px;
+    font-size: 13px;
+  }
+}
+
+.te-starter-preview {
+  min-height: 145px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    max-width: 100%;
+    max-height: 145px;
+    object-fit: contain;
+    filter: drop-shadow(2px 3px 4px rgba(0, 0, 0, 0.25));
+  }
+}
+
+.te-starter-fallback {
+  position: relative;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
 }
 
 // ==================== EDITOR LAYOUT ====================
@@ -652,6 +1062,13 @@ async function handleDelete(index: number): Promise<void> {
   font-size: 11px;
 }
 
+.te-inline-hint {
+  margin: 2px 0 6px;
+  color: $border-color;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
 .te-section {
   background: $white;
   border-radius: 6px;
@@ -732,9 +1149,15 @@ async function handleDelete(index: number): Promise<void> {
   border: 1px solid #ccc;
   border-radius: 4px;
   background: $white;
+  color: $dark;
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
+
+  &:hover {
+    filter: none;
+    background: rgba($secondary-color, 0.08);
+  }
 
   &.active {
     background: $secondary-color;
@@ -788,6 +1211,12 @@ async function handleDelete(index: number): Promise<void> {
 
   &:hover {
     background: rgba($secondary-color, 0.05);
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: transparent;
   }
 }
 

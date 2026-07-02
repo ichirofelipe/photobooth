@@ -14,10 +14,9 @@
   <router-link v-if="isActivated" to="/templates" class="absolute w-screen h-screen top-0 left-0" />
   <div v-else-if="entitlementStore.initialized" id="modal">
     <div id="modal-content" class="bg-white p-6 rounded-lg shadow-lg max-w-md mx-auto">
-      <h2 class="text-2xl font-bold mb-3">Activation Required</h2>
+      <h2 class="text-2xl font-bold mb-3">{{ modalTitle }}</h2>
       <p class="modal-copy">
-        Enter your <strong>base_app</strong> activation key to use the photobooth. QR Download and
-        Template Editor can be unlocked later from Setup with their own activation keys.
+        {{ modalCopy }}
       </p>
       <p class="mb-3 text-sm text-gray-500">
         Device ID: {{ entitlementStore.deviceId ?? 'Unavailable' }}
@@ -65,6 +64,19 @@ const isActivating = ref(false);
 
 const isActivated = computed(() => entitlementStore.isValid('base_app'));
 const baseNotice = computed(() => entitlementStore.noticeFor('base_app'));
+const hasServerUnavailableMessage = computed(() =>
+  [activationError.value, entitlementStore.configError, baseNotice.value].some((message) =>
+    message?.toLowerCase().includes('activation server is temporarily unavailable')
+  )
+);
+const modalTitle = computed(() =>
+  hasServerUnavailableMessage.value ? 'Activation Server Unavailable' : 'Activation Required'
+);
+const modalCopy = computed(() =>
+  hasServerUnavailableMessage.value
+    ? 'Activation server is temporarily unavailable. Connect to the internet and try again.'
+    : 'Enter your base_app activation key to use the photobooth. QR Download and Template Editor can be unlocked later from Setup with their own activation keys.'
+);
 
 async function handleActivate(): Promise<void> {
   activationError.value = null;

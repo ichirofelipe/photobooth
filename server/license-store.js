@@ -918,6 +918,26 @@ export async function updateLicenseMetadata(licenseKey, { customerEmail, adminNo
   return updated;
 }
 
+export async function deleteLicense(licenseKey) {
+  await ensureInitialized();
+
+  if (pool) {
+    const result = await pool.query(
+      `DELETE FROM activation_licenses WHERE license_key = $1 RETURNING *`,
+      [licenseKey]
+    );
+    return rowToLicense(result.rows[0]);
+  }
+
+  const licenses = loadJsonLicenses();
+  const existing = licenses[licenseKey] ?? null;
+  if (!existing) return null;
+
+  delete licenses[licenseKey];
+  saveJsonLicenses(licenses);
+  return existing;
+}
+
 export async function unbindLicenseDevice(licenseKey) {
   const license = await getLicenseByKey(licenseKey);
   if (!license) return null;

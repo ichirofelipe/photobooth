@@ -84,6 +84,7 @@ export default function useDesign(): DesignReturn {
   };
 
   const getHeaderConfig = (multiples: number = 0): KonvaRectConfig | undefined => {
+    if (template.headerEnabled === false) return undefined;
     if (appStore.selectedDesign === null) return undefined;
     const { headerImages } = mainData.value!;
     const { header } = mainData.value!.colorData[appStore.selectedDesign];

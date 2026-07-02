@@ -13,6 +13,7 @@ interface StoredFrameData {
 
 const defaultFrames: FrameTemplate[] = (frameDataJson as StoredFrameData).frames;
 
+const CURRENT_SCHEMA_VERSION = 2;
 const MAX_TEMPLATES = 8;
 const MAX_ACTIVE = 4;
 
@@ -25,7 +26,19 @@ function normalizeFrameTemplate(
     ...JSON.parse(JSON.stringify(frame)),
     id: frame.id ?? uuidv4(),
     source: frame.source ?? (index < BUILTIN_COUNT ? 'builtin' : fallbackSource),
+    headerEnabled: frame.headerEnabled ?? true,
   };
+}
+
+const normalizedDefaultFrames = defaultFrames.map((frame, index) =>
+  normalizeFrameTemplate(frame, index, 'builtin')
+);
+
+function remapIndexAfterMove(index: number, fromIndex: number, toIndex: number): number {
+  if (index === fromIndex) return toIndex;
+  if (fromIndex < toIndex && index > fromIndex && index <= toIndex) return index - 1;
+  if (fromIndex > toIndex && index >= toIndex && index < fromIndex) return index + 1;
+  return index;
 }
 
 interface TemplateState {
@@ -36,7 +49,7 @@ interface TemplateState {
 
 export const useTemplateStore = defineStore('template', {
   state: (): TemplateState => ({
-    allFrames: JSON.parse(JSON.stringify(defaultFrames)),
+    allFrames: JSON.parse(JSON.stringify(normalizedDefaultFrames)),
     activeIndices: [0, 1, 2, 3],
     initialized: false,
   }),
@@ -66,7 +79,7 @@ export const useTemplateStore = defineStore('template', {
     async loadFrames(): Promise<void> {
       const raw = await FilesystemService.loadOrInitJson<StoredFrameData | FrameTemplate[]>(
         'customFrameData.json',
-        { schemaVersion: 1, frames: defaultFrames } as StoredFrameData
+        { schemaVersion: CURRENT_SCHEMA_VERSION, frames: normalizedDefaultFrames } as StoredFrameData
       );
 
       const stored: StoredFrameData = Array.isArray(raw)
@@ -82,10 +95,12 @@ export const useTemplateStore = defineStore('template', {
 
       if (
         !stored.schemaVersion ||
-        stored.schemaVersion < 1 ||
+        stored.schemaVersion < CURRENT_SCHEMA_VERSION ||
         normalizedFrames.some(
           (frame, index) =>
-            frame.id !== frames[index].id || frame.source !== frames[index].source
+            frame.id !== frames[index].id ||
+            frame.source !== frames[index].source ||
+            frame.headerEnabled !== frames[index].headerEnabled
         )
       ) {
         frames = normalizedFrames;
@@ -96,7 +111,7 @@ export const useTemplateStore = defineStore('template', {
 
       if (needsSave) {
         await FilesystemService.writeJsonFile<StoredFrameData>('customFrameData.json', {
-          schemaVersion: 1,
+          schemaVersion: CURRENT_SCHEMA_VERSION,
           frames: this.allFrames,
         });
       }
@@ -118,7 +133,7 @@ export const useTemplateStore = defineStore('template', {
 
     async saveFrames(): Promise<void> {
       await FilesystemService.writeJsonFile<StoredFrameData>('customFrameData.json', {
-        schemaVersion: 1,
+        schemaVersion: CURRENT_SCHEMA_VERSION,
         frames: this.allFrames,
       });
     },
@@ -168,6 +183,22 @@ export const useTemplateStore = defineStore('template', {
         this.allFrames[index].source
       );
       await this.saveFrames();
+      return true;
+    },
+
+    async moveTemplate(fromIndex: number, toIndex: number): Promise<boolean> {
+      if (fromIndex < 0 || fromIndex >= this.allFrames.length) return false;
+      if (toIndex < 0 || toIndex >= this.allFrames.length) return false;
+      if (fromIndex === toIndex) return false;
+
+      const [frame] = this.allFrames.splice(fromIndex, 1);
+      this.allFrames.splice(toIndex, 0, frame);
+      this.activeIndices = this.activeIndices
+        .map((index) => remapIndexAfterMove(index, fromIndex, toIndex))
+        .sort((a, b) => a - b);
+
+      await this.saveFrames();
+      await this.saveConfig();
       return true;
     },
 

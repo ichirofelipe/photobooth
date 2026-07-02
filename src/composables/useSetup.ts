@@ -81,6 +81,7 @@ export default function useSetup(): SetupReturn {
   };
 
   const getHeaderConfig = (): KonvaRectConfig | undefined => {
+    if (designStore.currentTemplate.headerEnabled === false) return undefined;
     if (designStore.selectedColorIndex === null) return undefined;
     const mainData = designStore.mainData as DesignData;
     const { headerImages } = mainData;
