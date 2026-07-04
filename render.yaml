@@ -1,0 +1,19 @@
+# Render Blueprint for the PRIM Photobooth marketing/download site.
+#
+# This only defines the public STATIC site (website + APK download).
+# The main photobooth web service and the activation/admin server are
+# managed separately in the Render dashboard and are not affected.
+#
+# To use without the Blueprint, create a Static Site in the dashboard with:
+#   Build Command:      cp public/prim.apk public/website/prim.apk
+#   Publish Directory:  public/website
+services:
+  - type: web
+    runtime: static
+    name: prim-photobooth-site
+    buildCommand: cp public/prim.apk public/website/prim.apk
+    staticPublishPath: public/website
+    headers:
+      - path: /prim.apk
+        name: Content-Type
+        value: application/vnd.android.package-archive

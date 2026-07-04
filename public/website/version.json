@@ -1,0 +1,18 @@
+{
+  "appName": "PRIM Photobooth",
+  "version": "1.1.0",
+  "releasedAt": "2025-11-30",
+  "minAndroid": "8.0",
+  "apkUrl": "/prim.apk",
+  "apkFileName": "prim.apk",
+  "fileSizeBytes": 93778873,
+  "sha256": "858cfa7d288159fc159dfee4ffb0507a372f83c82890555907b2d573e3fcb98f",
+  "releaseNotes": [
+    "New PRIM look with updated app logo and refreshed booth flow",
+    "Template Editor: create, edit, and manage your own print templates",
+    "Premium activation keys with flexible expiration (30/90/180/365 days or lifetime)",
+    "QR softcopy download flow for guests after printing",
+    "Setup menu tabs and improved template management in the setup page",
+    "Print flow improvements and setup mode"
+  ]
+}

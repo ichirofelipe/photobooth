@@ -14,7 +14,9 @@
     "activation-server": "node server/activation-server.js",
     "android:live": "npx cap run android --live-reload --host=192.168.100.3 --port=5173",
     "android:build": "npm run build && npx cap copy android",
-    "build:apk": "npm run build && npx cap sync android && cd android && set \"JAVA_HOME=C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.8.9-hotspot\" && set \"PATH=C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.8.9-hotspot\\bin;%PATH%\" && gradlew.bat assembleRelease"
+    "build:apk": "npm run build && npx cap sync android && cd android && set \"JAVA_HOME=C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.8.9-hotspot\" && set \"PATH=C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.8.9-hotspot\\bin;%PATH%\" && gradlew.bat assembleRelease",
+    "release:prepare": "node scripts/prepare-release.mjs",
+    "release:apk": "npm run build:apk && npm run release:prepare"
   },
   "dependencies": {
     "@capacitor/android": "^5.7.8",
