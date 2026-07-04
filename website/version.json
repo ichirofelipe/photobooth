@@ -1,0 +1,16 @@
+{
+  "appName": "PRIM Photobooth",
+  "version": "1.2.0",
+  "releasedAt": "2026-07-04",
+  "minAndroid": "8.0",
+  "apkUrl": "/prim.apk",
+  "apkFileName": "prim.apk",
+  "fileSizeBytes": 24530032,
+  "sha256": "af6e168e17fb166ea30f3a8023b98a2c5ab25ca79db8567b420e35a0e3ffb83b",
+  "releaseNotes": [
+    "Setup is now guest-proof: press and hold the hidden cog at the top-right of the template screen for 2 seconds to open it",
+    "Accidental taps by guests no longer open the Setup page",
+    "Much smaller download: app size reduced from ~90 MB to 23 MB",
+    "General fixes and improvements"
+  ]
+}

@@ -24,6 +24,4 @@ RUN npm run build
 RUN npm install -g serve
 
 # Start command
-# SPA fallback + /website routing come from dist/serve.json (copied from public/),
-# so the -s flag must NOT be used (it would shadow the /website static site).
-CMD ["serve", "dist", "-l", "3000"]
+CMD ["serve", "-s", "dist", "-l", "3000"]

@@ -1,7 +1,22 @@
 <template>
   <div id="parent">
     <h1 class="whitespace-nowrap tracking-wider">Pick your Prim style</h1>
-    <router-link to="/setup" class="setup p-5"></router-link>
+    <button
+      class="setup"
+      :style="{ opacity: setupHoldOpacity }"
+      aria-label="Hold to open setup"
+      @pointerdown.prevent="startSetupHold"
+      @pointerup="cancelSetupHold"
+      @pointerleave="cancelSetupHold"
+      @pointercancel="cancelSetupHold"
+      @contextmenu.prevent
+    >
+      <svg class="setup-ring" viewBox="0 0 36 36" aria-hidden="true">
+        <circle class="setup-ring-track" cx="18" cy="18" r="16" />
+        <circle class="setup-ring-fill" cx="18" cy="18" r="16" :stroke-dashoffset="RING_LENGTH - setupHoldProgress * RING_LENGTH" />
+      </svg>
+      <i class="mdi mdi-cog" :style="{ transform: `rotate(${setupHoldProgress * 180}deg)` }"></i>
+    </button>
     <div id="template-selection" :class="'grid grid-cols-' + visibleFrames.length">
       <a
         v-for="item in visibleFrames"
@@ -21,7 +36,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAppStore } from '@/stores/appStore';
 import { useTemplateStore } from '@/stores/templateStore';
 import { useEntitlementStore } from '@/stores/entitlementStore';
@@ -30,6 +46,45 @@ import TemplatePreview from '@/components/TemplatePreview.vue';
 const appStore = useAppStore();
 const templateStore = useTemplateStore();
 const entitlementStore = useEntitlementStore();
+const router = useRouter();
+
+// Setup is operator-only: the cog must be held down to open it so guests
+// tapping around the booth can't land in it by accident.
+const SETUP_HOLD_MS = 1800;
+const RING_LENGTH = 100.5; // circumference of the r=16 progress circle
+
+const setupHoldProgress = ref(0);
+// Invisible at rest; fades in with the hold so guests never see it.
+const setupHoldOpacity = computed(() =>
+  setupHoldProgress.value === 0 ? 0 : Math.min(0.3 + setupHoldProgress.value * 0.7, 1)
+);
+let setupHoldFrame = 0;
+let setupHoldStart = 0;
+
+function startSetupHold() {
+  setupHoldStart = performance.now();
+  trackSetupHold();
+}
+
+function trackSetupHold() {
+  setupHoldFrame = requestAnimationFrame(() => {
+    const elapsed = performance.now() - setupHoldStart;
+    setupHoldProgress.value = Math.min(elapsed / SETUP_HOLD_MS, 1);
+    if (setupHoldProgress.value >= 1) {
+      cancelSetupHold();
+      router.push('/setup');
+      return;
+    }
+    trackSetupHold();
+  });
+}
+
+function cancelSetupHold() {
+  cancelAnimationFrame(setupHoldFrame);
+  setupHoldProgress.value = 0;
+}
+
+onBeforeUnmount(cancelSetupHold);
 
 // Testing switch: render built-in templates from their data instead of using PNG previews.
 const useRenderedTemplatePreviews = true;
@@ -106,14 +161,52 @@ const selectedTemplateVisible = computed(() =>
 
 .setup {
   position: absolute;
-  top: 0;
-  right: 0;
-  font-size: 1.5em;
-  color: #000;
-  background-color: transparent;
+  top: 10px;
+  right: 10px;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
   border-radius: 50%;
-  width: 50px;
-  height: 50px;
-  text-align: center;
+  background-color: $white;
+  color: $primary-color;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  i {
+    display: block;
+    font-size: 26px;
+    line-height: 1;
+  }
+
+  .setup-ring {
+    position: absolute;
+    inset: 3px;
+    transform: rotate(-90deg);
+    pointer-events: none;
+
+    circle {
+      fill: none;
+      stroke-width: 3;
+      stroke-linecap: round;
+    }
+
+    .setup-ring-track {
+      stroke: $primary-light;
+    }
+
+    .setup-ring-fill {
+      stroke: $secondary-color;
+      stroke-dasharray: 100.5;
+    }
+  }
 }
 </style>

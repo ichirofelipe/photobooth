@@ -4,15 +4,19 @@
 # The main photobooth web service and the activation/admin server are
 # managed separately in the Render dashboard and are not affected.
 #
+# The site lives in the repo-root website/ folder (NOT public/ — anything in
+# public/ gets bundled into the Android app by Vite/Capacitor). The APK is
+# committed at website/prim.apk, so no build step is needed.
+#
 # To use without the Blueprint, create a Static Site in the dashboard with:
-#   Build Command:      cp public/prim.apk public/website/prim.apk
-#   Publish Directory:  public/website
+#   Build Command:      (leave empty)
+#   Publish Directory:  website
 services:
   - type: web
     runtime: static
     name: prim-photobooth-site
-    buildCommand: cp public/prim.apk public/website/prim.apk
-    staticPublishPath: public/website
+    buildCommand: ""
+    staticPublishPath: website
     headers:
       - path: /prim.apk
         name: Content-Type

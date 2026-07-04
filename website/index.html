@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRIM Photobooth — Run a booth guests remember</title>
+<meta name="description" content="PRIM Photobooth for Android: design your own print templates, hand out photos by QR code, and switch layouts on the fly. Download the latest APK here.">
+<link rel="icon" type="image/png" href="images/prim-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#F7ECD6;
+    --coral:#F2685F;
+    --coral-soft:#fde0e0;
+    --teal:#39B7AE;
+    --teal-soft:#e5f6f4;
+    --yellow:#F5C63D;
+    --yellow-soft:#fdf1d6;
+    --orange:#F5943B;
+    --ink:#3a3128;
+    --body:#6b5f52;
+    --muted:#a99d8c;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--cream);font-family:'Fredoka',system-ui,sans-serif;color:#4a4034;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  img{max-width:100%}
+  .wrap{max-width:1160px;margin:0 auto;padding-left:28px;padding-right:28px}
+  .script{font-family:'Pacifico',cursive;font-weight:400;color:var(--coral)}
+  .kicker{color:var(--teal);font-weight:600;letter-spacing:1.5px;font-size:13px;text-transform:uppercase}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;text-decoration:none;font-weight:600;border:none;cursor:pointer;font-family:'Fredoka',sans-serif;transition:transform .15s ease,box-shadow .15s ease}
+  .btn:hover{transform:translateY(-2px)}
+  .btn-teal{background:var(--teal);color:#fff;padding:16px 30px;border-radius:40px;font-size:16px;box-shadow:0 8px 20px rgba(57,183,174,.38)}
+  .btn-white{background:#fff;color:var(--coral);padding:18px 40px;border-radius:44px;font-size:18px;font-weight:700;box-shadow:0 10px 26px rgba(0,0,0,.22)}
+  @keyframes floaty{0%,100%{transform:rotate(-2deg) translateY(0)}50%{transform:rotate(-2deg) translateY(-10px)}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+
+  /* ---------- nav ---------- */
+  nav{position:sticky;top:0;z-index:50;background:rgba(247,236,214,.86);backdrop-filter:blur(10px);border-bottom:1px solid rgba(0,0,0,.06)}
+  .nav-inner{padding-top:12px;padding-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+  .brand img{width:38px;height:38px;object-fit:contain;border-radius:9px}
+  .brand span{font-weight:600;font-size:17px;color:var(--coral);letter-spacing:.5px}
+  .nav-links{display:flex;align-items:center;gap:28px}
+  .nav-links a{text-decoration:none;color:var(--body);font-weight:500;font-size:14.5px}
+  .nav-links a:hover{color:var(--coral)}
+  .nav-links .nav-cta{background:var(--teal);color:#fff;padding:9px 20px;border-radius:30px;font-weight:600;box-shadow:0 4px 12px rgba(57,183,174,.32)}
+  .nav-toggle{display:none;background:none;border:none;font-size:26px;color:var(--coral);cursor:pointer;padding:4px 8px}
+
+  /* ---------- hero ---------- */
+  .hero-card{position:relative;margin-top:22px;border-radius:26px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.12);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);background:var(--cream)}
+  .hero-left{padding:56px 52px 60px}
+  .badge{display:inline-block;background:var(--coral-soft);color:var(--coral);font-weight:600;font-size:12.5px;padding:6px 14px;border-radius:30px;margin-bottom:22px}
+  .hero-title{font-size:58px;line-height:1.08}
+  .hero-left p{margin:22px 0 32px;font-size:17px;line-height:1.6;color:var(--body);max-width:440px}
+  .hero-ctas{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .hero-more{color:var(--coral);font-weight:600;font-size:16px;padding:0}
+  .hero-meta{margin-top:18px;font-size:13px;color:var(--muted)}
+  .hero-right{position:relative;background:linear-gradient(150deg,var(--coral),var(--orange));display:flex;align-items:center;justify-content:center;padding:44px}
+  .hero-shot{width:100%;max-width:460px;border-radius:14px;overflow:hidden;box-shadow:0 24px 55px rgba(0,0,0,.34);transform:rotate(-2deg);animation:floaty 6s ease-in-out infinite}
+  .hero-shot img{display:block;width:100%;background:var(--cream)}
+  .spark{position:absolute;border-radius:50%}
+  .trust{display:flex;flex-wrap:wrap;justify-content:center;gap:14px 40px;padding:34px 0 6px;color:#8a7d6c;font-size:14px;font-weight:500}
+
+  /* ---------- sections ---------- */
+  section{padding-top:70px}
+  .sec-head{text-align:center;max-width:600px;margin:0 auto 46px}
+  .sec-head h2{font-size:44px;margin:8px 0 12px}
+  .sec-head p{font-size:16.5px;line-height:1.6;color:var(--body);margin:0}
+
+  /* ---------- features ---------- */
+  .feature-big{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.09);margin-bottom:28px}
+  .feature-big-text{padding:48px 44px;display:flex;flex-direction:column;justify-content:center}
+  .icon-chip{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:18px}
+  .feature-big-text h3{font-size:26px;font-weight:600;color:var(--ink);margin:0 0 12px}
+  .feature-big-text p{font-size:16px;line-height:1.6;color:var(--body);margin:0 0 20px}
+  .tags{display:flex;flex-wrap:wrap;gap:8px}
+  .tags span{background:var(--cream);color:var(--body);font-size:13px;font-weight:500;padding:6px 13px;border-radius:20px}
+  .feature-big-img{background:var(--cream);padding:34px;display:flex;align-items:center;justify-content:center}
+  .feature-big-img img{max-width:440px;border-radius:12px;box-shadow:0 16px 36px rgba(0,0,0,.2)}
+  .cards-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+  .card{background:#fff;border-radius:20px;padding:34px 30px;box-shadow:0 8px 28px rgba(0,0,0,.07)}
+  .card .icon-chip{width:50px;height:50px;font-size:23px;margin-bottom:16px}
+  .card h3{font-size:20px;font-weight:600;color:var(--ink);margin:0 0 10px}
+  .card p{font-size:15px;line-height:1.55;color:var(--body);margin:0}
+
+  /* ---------- screens ---------- */
+  .gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}
+  .gallery figure{margin:0}
+  .shot{border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.12)}
+  .shot img{display:block;width:100%}
+  .gallery figcaption{text-align:center;margin-top:12px;font-weight:500;color:var(--body);font-size:14.5px}
+
+  /* ---------- premium ---------- */
+  .plan .icon-chip{margin-left:auto;margin-right:auto}
+  .plan{text-align:center;display:flex;flex-direction:column}
+  .plan ul{list-style:none;margin:14px 0 0;padding:0;font-size:14.5px;color:var(--body);line-height:2}
+  .plan .fine{margin-top:auto;padding-top:14px;font-size:12.5px;color:var(--muted)}
+  .contact-card{margin-top:26px;background:#fff;border-radius:20px;padding:32px;box-shadow:0 8px 28px rgba(0,0,0,.07);text-align:center}
+  .contact-card h3{font-size:21px;color:var(--ink);margin:0 0 8px}
+  .contact-card>p{font-size:15px;color:var(--body);max-width:640px;margin:0 auto 20px;line-height:1.6}
+  .contact-btns{display:flex;justify-content:center;gap:12px;flex-wrap:wrap}
+  .contact-btns a{text-decoration:none;font-weight:600;font-size:14.5px;padding:11px 22px;border-radius:30px;background:var(--cream);color:var(--body);transition:transform .15s ease}
+  .contact-btns a:hover{transform:translateY(-2px);color:var(--coral)}
+  .pay-note{margin:18px auto 0;font-size:13.5px;color:var(--muted);max-width:560px;line-height:1.6}
+
+  /* ---------- download / updates ---------- */
+  .dl-banner{position:relative;background:linear-gradient(140deg,var(--coral),var(--orange));border-radius:28px;padding:60px 40px;text-align:center;color:#fff;overflow:hidden;box-shadow:0 20px 55px rgba(242,104,95,.3)}
+  .dl-banner .script{color:#fff;font-size:52px;line-height:1.1;position:relative}
+  .dl-banner p{position:relative;max-width:480px;margin:20px auto 30px;font-size:17px;line-height:1.55;color:rgba(255,255,255,.94)}
+  .dl-banner .btn{position:relative}
+  .dl-meta{position:relative;margin-top:20px;display:flex;justify-content:center;gap:10px 26px;flex-wrap:wrap;font-size:13.5px;color:rgba(255,255,255,.85);font-weight:500}
+  .dl-panels{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:24px;margin-top:26px}
+  .panel{background:#fff;border-radius:20px;padding:32px;box-shadow:0 8px 28px rgba(0,0,0,.07)}
+  .panel h3{font-size:20px;color:var(--ink);margin:0 0 16px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+  .rel-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+  .rel-row span{background:var(--teal-soft);color:#1f7d76;font-size:13px;font-weight:600;padding:6px 13px;border-radius:20px}
+  .panel ul{margin:0;padding-left:20px;font-size:14.5px;color:var(--body);line-height:1.9}
+  .steps{margin:0;padding:0;list-style:none;counter-reset:step}
+  .steps li{position:relative;padding:0 0 18px 46px;counter-increment:step;font-size:14.5px;color:var(--body);line-height:1.55}
+  .steps li::before{content:counter(step);position:absolute;left:0;top:0;width:30px;height:30px;border-radius:50%;background:var(--coral-soft);color:var(--coral);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
+  .steps li strong{color:var(--ink)}
+  .checker{margin-top:22px;border-top:1px dashed rgba(0,0,0,.1);padding-top:20px}
+  .checker label{font-size:14px;font-weight:600;color:var(--ink);display:block;margin-bottom:10px}
+  .checker-row{display:flex;gap:10px}
+  .checker input{flex:1;min-width:0;border:2px solid var(--cream);background:var(--cream);border-radius:12px;padding:11px 14px;font-family:'Fredoka',sans-serif;font-size:15px;color:var(--ink);outline:none}
+  .checker input:focus{border-color:var(--teal)}
+  .checker .btn{background:var(--coral);color:#fff;border-radius:12px;padding:0 20px;font-size:14.5px}
+  .checker-result{margin-top:12px;font-size:14px;line-height:1.5;border-radius:12px;padding:12px 14px;display:none}
+  .checker-result.ok{display:block;background:var(--teal-soft);color:#1f7d76}
+  .checker-result.warn{display:block;background:var(--coral-soft);color:#c2453d}
+  .checker-hint{margin-top:10px;font-size:12.5px;color:var(--muted)}
+
+  /* ---------- faq ---------- */
+  .faq-wrap{max-width:760px;margin:0 auto}
+  .faq-list{display:flex;flex-direction:column;gap:14px}
+  .faq-item{background:#fff;border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,.06);overflow:hidden}
+  .faq-q{width:100%;text-align:left;border:none;background:none;cursor:pointer;padding:22px 26px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-family:'Fredoka',sans-serif}
+  .faq-q span:first-child{font-size:17px;font-weight:600;color:var(--ink)}
+  .faq-sign{flex:none;width:28px;height:28px;border-radius:50%;background:var(--coral-soft);color:var(--coral);display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;transition:transform .2s}
+  .faq-item.open .faq-sign{transform:rotate(45deg)}
+  .faq-a{display:none;padding:0 26px 24px;font-size:15.5px;line-height:1.62;color:var(--body)}
+  .faq-item.open .faq-a{display:block}
+
+  footer{margin-top:80px;border-top:1px solid rgba(0,0,0,.07)}
+  .foot-inner{padding-top:30px;padding-bottom:30px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px}
+  .foot-inner .muted{font-size:13.5px;color:var(--muted)}
+
+  /* ---------- responsive ---------- */
+  @media (max-width:920px){
+    .hero-card,.feature-big,.dl-panels{grid-template-columns:minmax(0,1fr)}
+    .hero-left{padding:44px 34px}
+    .hero-title{font-size:46px}
+    .cards-3,.gallery{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media (max-width:640px){
+    .wrap{padding-left:18px;padding-right:18px}
+    .nav-links{display:none;position:absolute;top:100%;left:0;right:0;background:rgba(247,236,214,.98);flex-direction:column;padding:18px;gap:16px;border-bottom:1px solid rgba(0,0,0,.08)}
+    .nav-links.open{display:flex}
+    .nav-toggle{display:block}
+    .hero-title{font-size:38px}
+    .sec-head h2{font-size:34px}
+    .dl-banner .script{font-size:36px}
+    .cards-3,.gallery{grid-template-columns:minmax(0,1fr)}
+    .feature-big-text{padding:34px 26px}
+    .feature-big-img{padding:24px}
+    .checker-row{flex-direction:column}
+    .checker .btn{padding:12px 20px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== NAV ===================== -->
+<nav>
+  <div class="wrap nav-inner">
+    <a href="#top" class="brand">
+      <img src="images/prim-logo.png" alt="PRIM Photobooth logo">
+      <span>PRIM PHOTOBOOTH</span>
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle menu" aria-expanded="false">&#9776;</button>
+    <div class="nav-links" id="navLinks">
+      <a href="#features">Features</a>
+      <a href="#screens">Screens</a>
+      <a href="#premium">Premium</a>
+      <a href="#faq">FAQ</a>
+      <a href="#download" class="nav-cta">Download</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<header id="top" class="wrap">
+  <div class="hero-card">
+    <div class="hero-left">
+      <div class="badge">Built for photobooth operators</div>
+      <div class="script hero-title">Run a booth<br>guests remember</div>
+      <p>Design your own print templates, hand out photos by QR code, and switch layouts on the fly — all from one Android app.</p>
+      <div class="hero-ctas">
+        <a href="/prim.apk" class="btn btn-teal apk-link" download="prim.apk">&#11015; Download latest APK &middot; <span data-bind="version">v1.1.0</span></a>
+        <a href="#features" class="btn hero-more">See features &#8594;</a>
+      </div>
+      <div class="hero-meta">
+        <span data-bind="version">v1.1.0</span> &middot; Android <span data-bind="minAndroid">8.0</span>+ &middot; <span data-bind="size">89 MB</span> &middot; Free updates
+      </div>
+    </div>
+    <div class="hero-right">
+      <span class="spark" style="left:12%;top:14%;width:auto;height:auto;font-size:24px;color:rgba(255,255,255,.55);background:none">&#10022;</span>
+      <span class="spark" style="right:12%;bottom:16%;width:15px;height:15px;background:#F5C63D"></span>
+      <span class="spark" style="right:20%;top:18%;width:11px;height:11px;background:rgba(255,255,255,.5)"></span>
+      <span class="spark" style="left:18%;bottom:24%;width:9px;height:9px;background:#39B7AE"></span>
+      <div class="hero-shot"><img src="images/screen-masterpiece.png" alt="PRIM app — Make it a masterpiece screen"></div>
+    </div>
+  </div>
+  <div class="trust">
+    <span>&#128424;&#65039; Print-ready layouts</span>
+    <span>&#128241; QR softcopy delivery</span>
+    <span>&#127912; Full template editor</span>
+    <span>&#9889; Live layout switching</span>
+  </div>
+</header>
+
+<!-- ===================== FEATURES ===================== -->
+<section id="features" class="wrap">
+  <div class="sec-head">
+    <div class="kicker">Premium features</div>
+    <h2 class="script">Everything the pros need</h2>
+    <p>From first pose to printed keepsake — PRIM handles the whole flow so you can focus on the party.</p>
+  </div>
+
+  <div class="feature-big">
+    <div class="feature-big-text">
+      <div class="icon-chip" style="background:var(--coral-soft)">&#127912;</div>
+      <h3>Template Editor</h3>
+      <p>Build unlimited print templates from scratch — 2, 4 or 6-pose layouts, strips, and wide prints. Set active templates per event, add color variations, and reorder with a drag.</p>
+      <div class="tags">
+        <span>Custom layouts</span>
+        <span>Multiple variations</span>
+        <span>Active toggles</span>
+      </div>
+    </div>
+    <div class="feature-big-img">
+      <img src="images/screen-editor.png" alt="Template Editor screen">
+    </div>
+  </div>
+
+  <div class="cards-3">
+    <div class="card">
+      <div class="icon-chip" style="background:var(--teal-soft)">&#128241;</div>
+      <h3>QR Softcopy Download</h3>
+      <p>Guests scan a QR code and take their high-res photos home instantly — no email lists, no waiting by the printer.</p>
+    </div>
+    <div class="card">
+      <div class="icon-chip" style="background:var(--yellow-soft)">&#128444;&#65039;</div>
+      <h3>Layouts for any event</h3>
+      <p>Weddings, parties, brand activations — pick from strips, classic 4-pose, and wide layouts, then let guests choose their style.</p>
+    </div>
+    <div class="card">
+      <div class="icon-chip" style="background:var(--coral-soft)">&#10024;</div>
+      <h3>On-the-spot styling</h3>
+      <p>Swap colors and frame variations live from the booth so every print matches the couple's or client's theme.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SCREENS ===================== -->
+<section id="screens" class="wrap">
+  <div class="sec-head">
+    <div class="kicker">A look inside</div>
+    <h2 class="script">The PRIM experience</h2>
+  </div>
+  <div class="gallery">
+    <figure>
+      <div class="shot"><img src="images/screen-style.png" alt="Pick your Prim style screen" loading="lazy"></div>
+      <figcaption>Pick your Prim style</figcaption>
+    </figure>
+    <figure>
+      <div class="shot"><img src="images/screen-masterpiece.png" alt="Make it a masterpiece screen" loading="lazy"></div>
+      <figcaption>Style colors &amp; variations</figcaption>
+    </figure>
+    <figure>
+      <div class="shot"><img src="images/screen-editor.png" alt="Template Editor screen" loading="lazy"></div>
+      <figcaption>Manage your templates</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ===================== PREMIUM ===================== -->
+<section id="premium" class="wrap">
+  <div class="sec-head">
+    <div class="kicker">Unlock more</div>
+    <h2 class="script">Premium, unlocked by key</h2>
+    <p>The core booth is free to run. Premium add-ons are unlocked with an activation key you enter once on your device — no account needed.</p>
+  </div>
+  <div class="cards-3">
+    <div class="card plan">
+      <div class="icon-chip" style="background:var(--teal-soft)">&#128241;</div>
+      <h3>QR Download</h3>
+      <p>Let guests scan and save their softcopies right after printing.</p>
+      <ul>
+        <li>Guest QR download page</li>
+        <li>High-res softcopies</li>
+        <li>Works on the booth's local network</li>
+      </ul>
+      <div class="fine">Unlocked with a QR Download key</div>
+    </div>
+    <div class="card plan">
+      <div class="icon-chip" style="background:var(--coral-soft)">&#127912;</div>
+      <h3>Template Editor</h3>
+      <p>Create, edit, and manage unlimited custom print templates.</p>
+      <ul>
+        <li>Strips, 2/4/6-pose &amp; wide prints</li>
+        <li>Color variations per template</li>
+        <li>Per-event active toggles</li>
+      </ul>
+      <div class="fine">Unlocked with a Template Editor key</div>
+    </div>
+    <div class="card plan">
+      <div class="icon-chip" style="background:var(--yellow-soft)">&#127873;</div>
+      <h3>Premium Bundle</h3>
+      <p>Both add-ons with a single activation key — the best value.</p>
+      <ul>
+        <li>QR Download included</li>
+        <li>Template Editor included</li>
+        <li>One key, one activation</li>
+      </ul>
+      <div class="fine">Unlocked with a Premium Bundle key</div>
+    </div>
+  </div>
+  <div class="contact-card">
+    <h3>How to get an activation key</h3>
+    <p>Message us with the feature you want to unlock and your device ID (shown in the app's Premium Access screen). After payment is verified, you'll receive your activation key — paste it into the app and you're done.</p>
+    <div class="contact-btns">
+      <a href="https://www.facebook.com/PRIMoments" target="_blank" rel="noopener">&#128216; Facebook Page</a>
+      <a href="https://m.me/PRIMoments" target="_blank" rel="noopener">&#128172; Messenger</a>
+      <a href="mailto:primphotobooth@gmail.com?subject=Photobooth%20Premium%20Activation">&#9993;&#65039; Email</a>
+    </div>
+    <p class="pay-note">Payments accepted via <strong>GCash</strong> or <strong>Maya</strong> — 0906&nbsp;570&nbsp;3565. Include your device ID, chosen feature, and your name when sending proof of payment.</p>
+  </div>
+</section>
+
+<!-- ===================== DOWNLOAD & UPDATES ===================== -->
+<section id="download" class="wrap">
+  <div class="dl-banner">
+    <span class="spark" style="left:8%;top:22%;width:auto;height:auto;font-size:28px;color:rgba(255,255,255,.35);background:none">&#10022;</span>
+    <span class="spark" style="right:10%;top:30%;width:16px;height:16px;background:#F5C63D"></span>
+    <span class="spark" style="right:18%;bottom:24%;width:12px;height:12px;background:#39B7AE"></span>
+    <span class="spark" style="left:14%;bottom:20%;width:13px;height:13px;background:rgba(255,255,255,.5)"></span>
+    <div class="script">Ready to set up<br>your booth?</div>
+    <p>Download the latest PRIM Photobooth APK and start printing masterpieces today.</p>
+    <a href="/prim.apk" class="btn btn-white apk-link" download="prim.apk">&#11015; Download PRIM &middot; <span data-bind="version">v1.1.0</span></a>
+    <div class="dl-meta">
+      <span>Android <span data-bind="minAndroid">8.0</span>+</span><span>&middot;</span>
+      <span data-bind="size">89 MB</span><span>&middot;</span>
+      <span>Released <span data-bind="date">Nov 30, 2025</span></span><span>&middot;</span>
+      <span>Free updates</span>
+    </div>
+  </div>
+
+  <div class="dl-panels">
+    <div class="panel">
+      <h3>&#128230; Latest release — <span data-bind="version">v1.1.0</span></h3>
+      <div class="rel-row">
+        <span data-bind="date">Nov 30, 2025</span>
+        <span data-bind="size">89 MB</span>
+        <span>Android <span data-bind="minAndroid">8.0</span>+</span>
+      </div>
+      <ul id="releaseNotes">
+        <li>Loading release notes&hellip;</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h3>&#128260; Install or update</h3>
+      <ol class="steps">
+        <li><strong>Download the APK</strong> using the button above, on the Android device that runs your booth.</li>
+        <li><strong>Allow the install</strong> — the first time, Android asks to allow installs from your browser. Approve it once.</li>
+        <li><strong>Open the file to install.</strong> Updating over an existing install keeps your templates, settings, and activations.</li>
+      </ol>
+      <div class="checker">
+        <label for="verInput">Already have PRIM? Check if you're up to date:</label>
+        <div class="checker-row">
+          <input id="verInput" type="text" inputmode="decimal" placeholder="Your installed version, e.g. 1.0.0" autocomplete="off">
+          <button id="verCheck" class="btn" type="button">Check</button>
+        </div>
+        <div class="checker-result" id="verResult"></div>
+        <div class="checker-hint">Find your version in the app, or in Android under Settings &rarr; Apps &rarr; PRIM Photobooth.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FAQ ===================== -->
+<section id="faq" class="wrap">
+  <div class="faq-wrap">
+    <div class="sec-head">
+      <div class="kicker">Questions</div>
+      <h2 class="script">Good to know</h2>
+    </div>
+    <div class="faq-list" id="faqList"></div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer>
+  <div class="wrap foot-inner">
+    <a href="#top" class="brand">
+      <img src="images/prim-logo.png" alt="PRIM Photobooth logo" style="width:30px;height:30px">
+      <span style="font-size:15px">PRIM PHOTOBOOTH</span>
+    </a>
+    <div class="muted">&copy; <span id="year">2026</span> PRIM Photobooth &middot; Made for people who throw great parties</div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- release info (from version.json) ---------- */
+  var release = null;
+
+  function formatSize(bytes) {
+    return (bytes / (1024 * 1024)).toFixed(0) + ' MB';
+  }
+
+  function formatDate(iso) {
+    var d = new Date(iso + 'T00:00:00');
+    if (isNaN(d)) return iso;
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function bindAll(name, value) {
+    document.querySelectorAll('[data-bind="' + name + '"]').forEach(function (el) {
+      el.textContent = value;
+    });
+  }
+
+  function applyRelease(data) {
+    release = data;
+    bindAll('version', 'v' + data.version);
+    bindAll('minAndroid', data.minAndroid);
+    bindAll('size', formatSize(data.fileSizeBytes));
+    bindAll('date', formatDate(data.releasedAt));
+
+    document.querySelectorAll('.apk-link').forEach(function (a) {
+      a.setAttribute('href', data.apkUrl);
+      if (data.apkFileName) a.setAttribute('download', data.apkFileName);
+    });
+
+    var notes = document.getElementById('releaseNotes');
+    notes.innerHTML = '';
+    (data.releaseNotes || []).forEach(function (note) {
+      var li = document.createElement('li');
+      li.textContent = note;
+      notes.appendChild(li);
+    });
+  }
+
+  fetch('version.json', { cache: 'no-store' })
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(applyRelease)
+    .catch(function () {
+      document.getElementById('releaseNotes').innerHTML =
+        '<li>Could not load release notes. The download button above still works.</li>';
+    });
+
+  /* ---------- update checker ---------- */
+  function parseVersion(str) {
+    var m = String(str).trim().replace(/^v/i, '').match(/^(\d+)(?:\.(\d+))?(?:\.(\d+))?$/);
+    if (!m) return null;
+    return [Number(m[1]), Number(m[2] || 0), Number(m[3] || 0)];
+  }
+
+  function compareVersions(a, b) {
+    for (var i = 0; i < 3; i++) {
+      if (a[i] !== b[i]) return a[i] < b[i] ? -1 : 1;
+    }
+    return 0;
+  }
+
+  function checkVersion() {
+    var input = document.getElementById('verInput');
+    var result = document.getElementById('verResult');
+    var mine = parseVersion(input.value);
+    result.className = 'checker-result';
+
+    if (!mine) {
+      result.classList.add('warn');
+      result.textContent = 'Please enter a version like 1.0.0 — you can find it in Settings → Apps → PRIM Photobooth.';
+      return;
+    }
+    if (!release) {
+      result.classList.add('warn');
+      result.textContent = 'Release info has not loaded yet — please try again in a moment.';
+      return;
+    }
+
+    var latest = parseVersion(release.version);
+    var cmp = compareVersions(mine, latest);
+    if (cmp < 0) {
+      result.classList.add('warn');
+      result.textContent = '🆕 Update available! You have v' + input.value.trim().replace(/^v/i, '') +
+        ' and the latest is v' + release.version + '. Download it above and install over your current app — your data is kept.';
+    } else {
+      result.classList.add('ok');
+      result.textContent = '✅ You’re up to date! v' + release.version + ' is the latest release.';
+    }
+  }
+
+  document.getElementById('verCheck').addEventListener('click', checkVersion);
+  document.getElementById('verInput').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') checkVersion();
+  });
+
+  /* ---------- FAQ ---------- */
+  var faqs = [
+    {
+      q: 'What do I need to run PRIM?',
+      a: 'Any Android tablet or phone on 8.0 or newer, a compatible photo printer, and the PRIM APK. No account or subscription is required to run the booth — guest QR downloads work over the booth’s local connection.'
+    },
+    {
+      q: 'How does the QR softcopy download work?',
+      a: 'After each session PRIM generates a unique QR code. Guests scan it to instantly download the full-resolution photos to their phone — no email collection or app install needed. QR Download is a premium add-on unlocked with an activation key.'
+    },
+    {
+      q: 'Can I build my own print templates?',
+      a: 'Yes. The Template Editor add-on lets you create 2, 4, and 6-pose layouts, strips, and wide prints, add color variations, and toggle which templates are active for each event.'
+    },
+    {
+      q: 'How do activation keys work?',
+      a: 'Each key unlocks one premium feature (or the bundle) on one device. Message us through Facebook, Messenger, or email, pay via GCash or Maya, and you’ll receive a key to paste into the app’s Premium Access screen. Keys are valid for 30 to 365 days, depending on the package you purchase.'
+    },
+    {
+      q: 'How do I open the Setup page? I can’t find a settings button.',
+      a: 'It’s hidden on purpose so guests can’t wander into your settings mid-event. On the “Pick your Prim style” screen, press and hold the top-right corner of the screen for about 2 seconds — a cog fades in with a progress ring. Keep holding until the ring completes and the Setup page opens. Releasing early cancels it, so stray taps from guests do nothing.'
+    },
+    {
+      q: 'How do I update the app?',
+      a: 'Come back to this page any time — the download button always serves the latest version, and the version checker tells you if you’re behind. Installing the new APK over your existing app keeps all your templates, settings, and activations.'
+    },
+    {
+      q: 'Is installing an APK safe?',
+      a: 'The APK is the same signed build we ship for every event. You’ll enable installs from your browser once on your device, then future updates install with a tap.'
+    }
+  ];
+
+  var faqList = document.getElementById('faqList');
+  faqs.forEach(function (item, i) {
+    var wrap = document.createElement('div');
+    wrap.className = 'faq-item' + (i === 0 ? ' open' : '');
+
+    var btn = document.createElement('button');
+    btn.className = 'faq-q';
+    btn.type = 'button';
+    btn.setAttribute('aria-expanded', i === 0 ? 'true' : 'false');
+
+    var qSpan = document.createElement('span');
+    qSpan.textContent = item.q;
+    var sign = document.createElement('span');
+    sign.className = 'faq-sign';
+    sign.textContent = '+';
+    btn.appendChild(qSpan);
+    btn.appendChild(sign);
+
+    var answer = document.createElement('div');
+    answer.className = 'faq-a';
+    answer.textContent = item.a;
+
+    btn.addEventListener('click', function () {
+      var isOpen = wrap.classList.contains('open');
+      faqList.querySelectorAll('.faq-item').forEach(function (el) {
+        el.classList.remove('open');
+        el.querySelector('.faq-q').setAttribute('aria-expanded', 'false');
+      });
+      if (!isOpen) {
+        wrap.classList.add('open');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+
+    wrap.appendChild(btn);
+    wrap.appendChild(answer);
+    faqList.appendChild(wrap);
+  });
+
+  /* ---------- mobile nav ---------- */
+  var toggle = document.getElementById('navToggle');
+  var links = document.getElementById('navLinks');
+  toggle.addEventListener('click', function () {
+    var open = links.classList.toggle('open');
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  links.querySelectorAll('a').forEach(function (a) {
+    a.addEventListener('click', function () {
+      links.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+    });
+  });
+
+  document.getElementById('year').textContent = String(new Date().getFullYear());
+})();
+</script>
+</body>
+</html>

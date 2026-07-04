@@ -25,6 +25,3 @@ server/activation-server.env
 *.njsproj
 *.sln
 *.sw?
-
-# APK copy created by the Render static-site build (see render.yaml)
-public/website/prim.apk
