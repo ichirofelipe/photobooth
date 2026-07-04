@@ -118,9 +118,6 @@
   .rel-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
   .rel-row span{background:var(--teal-soft);color:#1f7d76;font-size:13px;font-weight:600;padding:6px 13px;border-radius:20px}
   .panel ul{margin:0;padding-left:20px;font-size:14.5px;color:var(--body);line-height:1.9}
-  .sha{margin-top:18px;font-size:12px;color:var(--muted)}
-  .sha code{display:block;margin-top:6px;background:var(--cream);border-radius:10px;padding:10px 12px;font-size:11px;word-break:break-all;color:var(--body)}
-  .sha button{margin-top:8px;background:none;border:1px solid var(--teal);color:var(--teal);border-radius:20px;padding:5px 14px;font-family:'Fredoka',sans-serif;font-weight:600;font-size:12.5px;cursor:pointer}
   .steps{margin:0;padding:0;list-style:none;counter-reset:step}
   .steps li{position:relative;padding:0 0 18px 46px;counter-increment:step;font-size:14.5px;color:var(--body);line-height:1.55}
   .steps li::before{content:counter(step);position:absolute;left:0;top:0;width:30px;height:30px;border-radius:50%;background:var(--coral-soft);color:var(--coral);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px}
@@ -356,7 +353,7 @@
       <span>Android <span data-bind="minAndroid">8.0</span>+</span><span>&middot;</span>
       <span data-bind="size">89 MB</span><span>&middot;</span>
       <span>Released <span data-bind="date">Nov 30, 2025</span></span><span>&middot;</span>
-      <span>Free lifetime updates</span>
+      <span>Free updates</span>
     </div>
   </div>
 
@@ -371,11 +368,6 @@
       <ul id="releaseNotes">
         <li>Loading release notes&hellip;</li>
       </ul>
-      <div class="sha">
-        Verify your download (SHA-256):
-        <code id="shaValue">&hellip;</code>
-        <button id="shaCopy" type="button">Copy checksum</button>
-      </div>
     </div>
 
     <div class="panel">
@@ -462,8 +454,6 @@
       li.textContent = note;
       notes.appendChild(li);
     });
-
-    document.getElementById('shaValue').textContent = data.sha256 || 'n/a';
   }
 
   fetch('version.json', { cache: 'no-store' })
@@ -473,16 +463,6 @@
       document.getElementById('releaseNotes').innerHTML =
         '<li>Could not load release notes. The download button above still works.</li>';
     });
-
-  /* ---------- copy checksum ---------- */
-  document.getElementById('shaCopy').addEventListener('click', function () {
-    var text = document.getElementById('shaValue').textContent;
-    var btn = this;
-    navigator.clipboard.writeText(text).then(function () {
-      btn.textContent = 'Copied!';
-      setTimeout(function () { btn.textContent = 'Copy checksum'; }, 1600);
-    });
-  });
 
   /* ---------- update checker ---------- */
   function parseVersion(str) {
@@ -548,7 +528,7 @@
     },
     {
       q: 'How do activation keys work?',
-      a: 'Each key unlocks one premium feature (or the bundle) on one device. Message us through Facebook, Messenger, or email, pay via GCash or Maya, and you’ll receive a key to paste into the app’s Premium Access screen. Keys can be time-limited (30 to 365 days) or lifetime, depending on what you purchase.'
+      a: 'Each key unlocks one premium feature (or the bundle) on one device. Message us through Facebook, Messenger, or email, pay via GCash or Maya, and you’ll receive a key to paste into the app’s Premium Access screen. Keys are valid for 30 to 365 days, depending on the package you purchase.'
     },
     {
       q: 'How do I update the app?',
@@ -556,7 +536,7 @@
     },
     {
       q: 'Is installing an APK safe?',
-      a: 'The APK is the same signed build we ship for every event, and you can verify the SHA-256 checksum shown above after downloading. You’ll enable installs from your browser once on your device, then future updates install with a tap.'
+      a: 'The APK is the same signed build we ship for every event. You’ll enable installs from your browser once on your device, then future updates install with a tap.'
     }
   ];
 

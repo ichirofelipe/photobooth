@@ -16,7 +16,8 @@
     "android:build": "npm run build && npx cap copy android",
     "build:apk": "npm run build && npx cap sync android && cd android && set \"JAVA_HOME=C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.8.9-hotspot\" && set \"PATH=C:\\Program Files\\Eclipse Adoptium\\jdk-21.0.8.9-hotspot\\bin;%PATH%\" && gradlew.bat assembleRelease",
     "release:prepare": "node scripts/prepare-release.mjs",
-    "release:apk": "npm run build:apk && npm run release:prepare"
+    "release:apk": "npm run build:apk && npm run release:prepare",
+    "website": "node -e \"require('fs').copyFileSync('public/prim.apk','public/website/prim.apk')\" && npx serve public/website -l 4000"
   },
   "dependencies": {
     "@capacitor/android": "^5.7.8",
